@@ -1,6 +1,6 @@
 [project]
 name = "cannae-kernel"
-version = "0.1.0"
+version = "0.1.1"
 description = "Shared identifiers, canonical serialization, event envelope and governance shapes for Project Cannae Legion"
 authors = [{name = "Guillermo Ravelo"}]
 readme = "README.md"
@@ -33,6 +33,11 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["cannae_kernel*"]
+
+# PEP 561: ship the py.typed marker so a consumer's type checker reads the kernel's
+# annotations instead of treating the package as untyped.
+[tool.setuptools.package-data]
+cannae_kernel = ["py.typed"]
 
 [tool.ruff]
 line-length = 100

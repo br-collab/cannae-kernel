@@ -2,6 +2,12 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.1.1 — 17 Sep 2026
+
+Packaging only. No field, enum member or canonical-serialization rule changed, and the golden vectors are byte-identical (`tests/test_golden.py` proves it).
+
+- PEP 561 `py.typed` marker, shipped as package data. A consumer's type checker now reads the kernel's annotations, so Aureon, Atreides and Legiones Cannenses can drop their `follow_untyped_imports` mypy overrides.
+
 ## 0.1.0 — 16 Sep 2026
 
 Initial kernel, Wave 1 of CL-JUM-001, amended by W1.1 before the tag.
