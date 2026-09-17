@@ -2,7 +2,7 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
-## 0.1.0 — unreleased (not tagged)
+## 0.1.0 — 16 Sep 2026
 
 Initial kernel, Wave 1 of CL-JUM-001, amended by W1.1 before the tag.
 
