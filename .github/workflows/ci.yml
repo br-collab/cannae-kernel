@@ -1,0 +1,50 @@
+# Continuous integration: lint, strict type check and tests with a coverage gate, on Python
+# 3.11, installed exactly from uv.lock.
+#
+# The golden-vector tests run here on every push. They are the cross-language contract, so a
+# change that alters canonical bytes fails CI unless it arrives with a version bump.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, type check, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          python-version: "3.11"
+          enable-cache: true
+
+      # --locked fails the job if uv.lock no longer matches pyproject.toml.
+      - name: Install from the lock
+        run: |
+          uv sync --locked --extra dev
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: ruff
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: mypy (strict)
+        run: mypy cannae_kernel tests tools
+
+      # Coverage gate (95%) is set in pyproject.toml.
+      - name: pytest
+        run: pytest -q

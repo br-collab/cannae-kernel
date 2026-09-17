@@ -1,0 +1,58 @@
+[project]
+name = "cannae-kernel"
+version = "0.1.0"
+description = "Shared identifiers, canonical serialization, event envelope and governance shapes for Project Cannae Legion"
+authors = [{name = "Guillermo Ravelo"}]
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+
+# The only runtime dependency. Same range as Atreides.
+dependencies = [
+    "pydantic>=2.6,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "hypothesis>=6.100",
+    "ruff>=0.4",
+    "mypy>=1.9",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cannae_kernel*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "PL", "RUF"]
+ignore = [
+    # Test assertions on literal quantities read better inline than as named constants.
+    "PLR2004",
+    # Envelope construction takes every envelope field by keyword; that is the contract.
+    "PLR0913",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-ra --strict-markers --cov=cannae_kernel --cov-report=term-missing --cov-fail-under=95"

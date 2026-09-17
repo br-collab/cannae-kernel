@@ -1,0 +1,37 @@
+{
+  "version": "0.1.0",
+  "vectors": {
+    "actor_ref": {
+      "file": "actor_ref.json",
+      "digest": "sha256:0ac715a3c589eac7ac4eb96c88ceec560e3ae6d1af07a2002aca3aaeea4579e9"
+    },
+    "authority_record": {
+      "file": "authority_record.json",
+      "digest": "sha256:3639e024f1e6d4a8da6566b7a09e042b1a9314c81c19680a848e0b126f5e7ced"
+    },
+    "chain_issue": {
+      "file": "chain_issue.json",
+      "digest": "sha256:2036dfdcb2e43cf5f0a4c8432f28b7e5fbfa6aa32763cf1ad4fee1a08e1de1b5"
+    },
+    "chain_report": {
+      "file": "chain_report.json",
+      "digest": "sha256:ec957dcbe494fbd06cbed195842cc02b9a8ae9e6b297d292019219a923cbee21"
+    },
+    "event_envelope": {
+      "file": "event_envelope.json",
+      "digest": "sha256:87680375629ea2612e8f7d81e33e64da58cbd71be0d88e54b4f1c881adf1553c"
+    },
+    "event_times": {
+      "file": "event_times.json",
+      "digest": "sha256:8a55b4faff32c03a3048273ed5669cbe7703df4e8bda23fcf99c8b153ea32d68"
+    },
+    "finality_assertion": {
+      "file": "finality_assertion.json",
+      "digest": "sha256:823014d47787f9e5d5885aed09949caed14d8c4d05cb3347485c1b5ba4343bf5"
+    },
+    "halt_context": {
+      "file": "halt_context.json",
+      "digest": "sha256:6855a71f2b269f44cfb9de9513a12e5371c6eaaa4ea4240dfd469e83621ace8a"
+    }
+  }
+}
