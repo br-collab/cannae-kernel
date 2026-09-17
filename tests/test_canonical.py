@@ -16,7 +16,7 @@ from cannae_kernel.canonical import (
     digest,
 )
 from cannae_kernel.disposition import Disposition
-from tests.factories import finality_assertion
+from tests.factories import finality_assertion, halt_context, replace
 
 
 class _Loose(KernelModel):
@@ -81,6 +81,29 @@ def test_enum_is_its_value() -> None:
 def test_float_raises_at_any_depth(value: Any) -> None:
     with pytest.raises(CanonicalizationError, match="float"):
         _bytes(value)
+
+
+def test_non_ascii_key_raises() -> None:
+    # JUM-D-24: key order is only language-independent for ASCII keys.
+    with pytest.raises(CanonicalizationError, match="non-ASCII key"):
+        _bytes({"montant": 1, "déjà": 2})
+    assert _bytes({"a": "déjà"}) == '{"value":{"a":"déjà"}}'.encode()
+
+
+@pytest.mark.parametrize("value", [2**53, -(2**53), 10**30])
+def test_integer_outside_the_safe_range_raises(value: int) -> None:
+    with pytest.raises(CanonicalizationError, match="outside"):
+        _bytes({"n": [value]})
+
+
+@pytest.mark.parametrize("value", [2**53 - 1, -(2**53 - 1), 0, True])
+def test_integer_at_the_safe_boundary_is_allowed(value: int) -> None:
+    assert _bytes(value) == f'{{"value":{str(value).lower()}}}'.encode()
+
+
+def test_kernel_integer_fields_refuse_values_they_could_not_serialize() -> None:
+    with pytest.raises(ValidationError):
+        replace(halt_context(), version=2**53)
 
 
 def test_unsupported_type_and_non_string_key_raise() -> None:

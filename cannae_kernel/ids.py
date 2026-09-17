@@ -8,6 +8,10 @@ Crockford base-32 characters.
 
 The ``new_*`` factories never read the system clock or an entropy source themselves. The
 caller injects both, which keeps library code deterministic and tests replayable.
+
+Identifiers minted in the same millisecond sort in random order. That is acceptable: journal
+order is defined by prior-digest links (``journal.verify_chain``), never by identifier order
+(JUM-D-25).
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ from pydantic_core import CoreSchema, core_schema
 __all__ = [
     "ActorId",
     "AllocationId",
+    "CheckpointId",
     "Clock",
     "EntropySource",
     "EventId",
@@ -35,6 +40,7 @@ __all__ = [
     "encode_ulid",
     "new_actor_id",
     "new_allocation_id",
+    "new_checkpoint_id",
     "new_event_id",
     "new_execution_id",
     "new_halt_id",
@@ -112,7 +118,7 @@ class _TypedId(str):
 
 
 class LifecycleId(_TypedId):
-    prefix = "lc_"
+    prefix = "lif_"
 
 
 class ScenarioId(_TypedId):
@@ -149,6 +155,10 @@ class ActorId(_TypedId):
 
 class HaltId(_TypedId):
     prefix = "hlt_"
+
+
+class CheckpointId(_TypedId):
+    prefix = "ckp_"
 
 
 def new_lifecycle_id(*, clock: Clock, entropy: EntropySource) -> LifecycleId:
@@ -189,3 +199,7 @@ def new_actor_id(*, clock: Clock, entropy: EntropySource) -> ActorId:
 
 def new_halt_id(*, clock: Clock, entropy: EntropySource) -> HaltId:
     return HaltId.new(clock=clock, entropy=entropy)
+
+
+def new_checkpoint_id(*, clock: Clock, entropy: EntropySource) -> CheckpointId:
+    return CheckpointId.new(clock=clock, entropy=entropy)

@@ -17,6 +17,8 @@ from cannae_kernel.ids import EventId
 from cannae_kernel.provenance import Provenance
 
 __all__ = [
+    "CONFIDENCE_FORBIDDEN",
+    "CONFIDENCE_REQUIRED",
     "ConditionalityStatus",
     "FinalityAssertion",
     "FinalityType",
@@ -50,6 +52,15 @@ class RevocabilityStatus(StrEnum):
 
 _FACTS = frozenset({Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC})
 
+CONFIDENCE_REQUIRED = frozenset({Provenance.FORECAST, Provenance.RECOMMENDATION})
+"""Inferred states: a confidence must be stated (JUM-D-21)."""
+
+CONFIDENCE_FORBIDDEN = frozenset(
+    {Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC, Provenance.POLICY_RESULT}
+)
+"""Authoritative or deterministic states: a confidence would make them look inferred.
+``HUMAN_JUDGMENT`` may carry one or not."""
+
 
 class FinalityAssertion(KernelModel):
     finality_type: FinalityType
@@ -64,17 +75,29 @@ class FinalityAssertion(KernelModel):
     provenance: Provenance
     """Not in the charter §19.5 field list; required so ``confidence`` can be checked."""
     confidence: KernelDecimal | None = None
-    """Present only when the state is inferred. Between 0 and 1 inclusive."""
+    """Required for FORECAST and RECOMMENDATION; forbidden for facts and policy results;
+    optional for HUMAN_JUDGMENT. Between 0 and 1 inclusive."""
 
     @model_validator(mode="after")
     def _inferred_never_looks_authoritative(self) -> Self:
-        if self.provenance in _FACTS and self.confidence is not None:
+        if self.provenance in CONFIDENCE_FORBIDDEN and self.confidence is not None:
             raise ValueError(
-                f"a {self.provenance.value} assertion is authoritative and must not carry "
-                "a confidence"
+                f"a {self.provenance.value} assertion is authoritative or deterministic and "
+                "must not carry a confidence"
             )
-        if self.provenance is Provenance.FORECAST and self.confidence is None:
-            raise ValueError("a FORECAST assertion is inferred and must carry a confidence")
+        if self.provenance in CONFIDENCE_REQUIRED and self.confidence is None:
+            raise ValueError(
+                f"a {self.provenance.value} assertion is inferred and must carry a confidence"
+            )
         if self.confidence is not None and not 0 <= self.confidence <= 1:
             raise ValueError("confidence must be between 0 and 1 inclusive")
+        return self
+
+    @model_validator(mode="after")
+    def _fact_not_observed_before_effect(self) -> Self:
+        # Forecasts and recommendations may describe a future effective time (JUM-D-22).
+        if self.provenance in _FACTS and self.observation_time < self.effective_time:
+            raise ValueError(
+                f"a {self.provenance.value} assertion cannot be observed before it takes effect"
+            )
         return self

@@ -4,7 +4,11 @@
 contract; changing any of them is a breaking change (see CLAUDE.md):
 
 - JSON (JavaScript Object Notation) encoded as UTF-8, with no insignificant whitespace.
-- Object keys sorted by Unicode code point. Non-ASCII text is emitted as UTF-8, not escaped.
+- Object keys must be ASCII, and are sorted. A non-ASCII key raises: code-point order and the
+  UTF-16 order other languages use agree only for ASCII (JUM-D-24). Non-ASCII string *values*
+  are allowed and emitted as UTF-8, not escaped.
+- Integers must lie within ±(2^53 - 1), the range every JSON consumer represents exactly.
+  Anything larger raises. Quantities and money are ``Decimal`` strings, not integers.
 - ``Decimal`` as a JSON string in plain notation, keeping its scale (``"1000000.00"``, never
   ``"1E+6"``). Non-finite values raise.
 - ``datetime`` as a JSON string in UTC ISO-8601 with six fractional digits and ``Z``
@@ -12,6 +16,10 @@ contract; changing any of them is a breaking change (see CLAUDE.md):
   zone is converted to UTC.
 - Enums as their values; ``None`` as ``null``; tuples and lists as arrays.
 - Floats raise anywhere, at any depth. So does any type not listed here.
+
+This is deliberately not full RFC 8785 (JSON Canonicalization Scheme). The key and integer
+rules above remove the two differences that matter across languages: key ordering and
+large-number formatting. The golden vectors, not RFC 8785, are the reference.
 
 ``digest`` is ``"sha256:"`` followed by the lower-case hex SHA-256 of ``canonical_bytes``.
 """
@@ -26,6 +34,8 @@ from enum import Enum
 from typing import Annotated, Any
 
 from pydantic import BaseModel, StringConstraints
+
+from cannae_kernel._model import MAX_SAFE_INTEGER
 
 __all__ = [
     "CanonicalizationError",
@@ -54,6 +64,10 @@ def _canonical_value(value: Any, path: str) -> Any:  # noqa: PLR0911, PLR0912
     if isinstance(value, str):
         return str(value)
     if isinstance(value, int):
+        if not -MAX_SAFE_INTEGER <= value <= MAX_SAFE_INTEGER:
+            raise CanonicalizationError(
+                f"integer at {path or '<root>'} is outside ±(2^53 - 1); use a Decimal"
+            )
         return int(value)
     if isinstance(value, float):
         raise CanonicalizationError(f"float at {path or '<root>'} has no canonical form")
@@ -76,6 +90,8 @@ def _canonical_value(value: Any, path: str) -> Any:  # noqa: PLR0911, PLR0912
         for key, item in value.items():
             if not isinstance(key, str):
                 raise CanonicalizationError(f"non-string key {key!r} at {path or '<root>'}")
+            if not key.isascii():
+                raise CanonicalizationError(f"non-ASCII key {key!r} at {path or '<root>'}")
             out[str(key)] = _canonical_value(item, f"{path}.{key}" if path else key)
         return out
     if isinstance(value, (list, tuple)):

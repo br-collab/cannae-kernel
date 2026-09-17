@@ -168,24 +168,67 @@ def test_human_and_deterministic_service_can_authorize() -> None:
 # ---- 7. Finality ------------------------------------------------------------------------
 
 
-def test_forecast_without_confidence_raises() -> None:
-    with pytest.raises(ValidationError, match="FORECAST"):
-        replace(finality_assertion(), confidence=None)
+@pytest.mark.parametrize("provenance", [Provenance.FORECAST, Provenance.RECOMMENDATION])
+def test_inferred_provenance_without_confidence_raises(provenance: Provenance) -> None:
+    # JUM-D-21: forecasts and recommendations must state a confidence.
+    with pytest.raises(ValidationError, match="inferred and must carry a confidence"):
+        replace(finality_assertion(), provenance=provenance, confidence=None)
+    assert replace(finality_assertion(), provenance=provenance).confidence == Decimal("0.85")
 
 
-@pytest.mark.parametrize("fact", [Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC])
-def test_fact_with_confidence_raises(fact: Provenance) -> None:
-    with pytest.raises(ValidationError, match="authoritative"):
-        replace(finality_assertion(), provenance=fact)
-    assert replace(finality_assertion(), provenance=fact, confidence=None).confidence is None
+def _fact_timed(provenance: Provenance, **changes: Any) -> FinalityAssertion:
+    """``finality_assertion()`` as a fact, observed one minute after it took effect."""
+    base = finality_assertion()
+    defaults: dict[str, Any] = {
+        "provenance": provenance,
+        "confidence": None,
+        "observation_time": base.effective_time + timedelta(minutes=1),
+    }
+    return replace(base, **{**defaults, **changes})
 
 
 @pytest.mark.parametrize(
     "provenance",
-    [Provenance.RECOMMENDATION, Provenance.HUMAN_JUDGMENT, Provenance.POLICY_RESULT],
+    [Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC, Provenance.POLICY_RESULT],
 )
-def test_other_provenances_may_omit_confidence(provenance: Provenance) -> None:
-    replace(finality_assertion(), provenance=provenance, confidence=None)
+def test_authoritative_or_deterministic_with_confidence_raises(provenance: Provenance) -> None:
+    # JUM-D-21: facts and policy results must not look inferred.
+    with pytest.raises(ValidationError, match="must not carry a confidence"):
+        _fact_timed(provenance, confidence=Decimal("0.9"))
+    assert _fact_timed(provenance).confidence is None
+
+
+@pytest.mark.parametrize("confidence", [None, Decimal("0.4")])
+def test_human_judgment_confidence_is_optional(confidence: Decimal | None) -> None:
+    assessed = replace(
+        finality_assertion(), provenance=Provenance.HUMAN_JUDGMENT, confidence=confidence
+    )
+    assert assessed.confidence == confidence
+
+
+@pytest.mark.parametrize("fact", [Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC])
+def test_fact_observed_before_it_takes_effect_raises(fact: Provenance) -> None:
+    # JUM-D-22.
+    base = finality_assertion()
+    with pytest.raises(ValidationError, match="observed before it takes effect"):
+        _fact_timed(fact, observation_time=base.effective_time - timedelta(microseconds=1))
+    assert _fact_timed(fact, observation_time=base.effective_time).confidence is None
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [
+        Provenance.FORECAST,
+        Provenance.RECOMMENDATION,
+        Provenance.HUMAN_JUDGMENT,
+        Provenance.POLICY_RESULT,
+    ],
+)
+def test_non_facts_may_describe_a_future_effective_time(provenance: Provenance) -> None:
+    base = finality_assertion()
+    assert base.observation_time < base.effective_time
+    confidence = None if provenance is Provenance.POLICY_RESULT else base.confidence
+    replace(base, provenance=provenance, confidence=confidence)
 
 
 @pytest.mark.parametrize("bad", [Decimal("-0.01"), Decimal("1.01")])
@@ -238,9 +281,35 @@ def test_malformed_scope_raises(scope: Any, message: str) -> None:
         replace(halt_context(), scope=scope)
 
 
-def test_halt_version_starts_at_one() -> None:
+@pytest.mark.parametrize("bad", [0, -1, 2**53])
+def test_halt_version_is_a_positive_safe_integer(bad: int) -> None:
     with pytest.raises(ValidationError):
-        replace(halt_context(), version=0)
+        replace(halt_context(), version=bad)
+
+
+@pytest.mark.parametrize("kind", list(ActorKind))
+def test_any_authenticated_kind_may_declare_a_halt(kind: ActorKind) -> None:
+    # JUM-D-19: halting is the safe direction.
+    declarer = replace(human(), actor_kind=kind)
+    assert replace(halt_context(), declared_by=declarer).declared_by.actor_kind is kind
+
+
+def test_unauthenticated_actor_may_not_declare_a_halt() -> None:
+    with pytest.raises(ValidationError, match="must be authenticated"):
+        replace(halt_context(), declared_by=human(authenticated=False))
+
+
+@pytest.mark.parametrize("kind", [k for k in ActorKind if k is not ActorKind.HUMAN])
+def test_only_a_human_may_clear_a_halt(kind: ActorKind) -> None:
+    clearer = replace(human(), actor_kind=kind)
+    with pytest.raises(ValidationError, match=f"only a HUMAN may clear a halt; {kind.value}"):
+        replace(halt_context(), active=False, version=2, declared_by=clearer)
+
+
+def test_unauthenticated_human_may_not_clear_a_halt() -> None:
+    with pytest.raises(ValidationError, match="must be authenticated"):
+        replace(halt_context(), active=False, version=2, declared_by=human(authenticated=False))
+    assert not replace(halt_context(), active=False, version=2).active
 
 
 def test_models_are_frozen_and_closed() -> None:

@@ -6,7 +6,14 @@ from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, GetCoreSchemaHandler, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    GetCoreSchemaHandler,
+    StringConstraints,
+)
 from pydantic_core import CoreSchema, core_schema
 
 
@@ -66,3 +73,14 @@ KernelDecimal = Annotated[Decimal, _StrictDecimal()]
 """A finite Decimal that was never a binary float: a decimal string in JSON."""
 
 NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
+
+MAX_SAFE_INTEGER = 2**53 - 1
+"""The largest integer every JSON consumer (including JavaScript) represents exactly."""
+
+SafeInt = Annotated[int, Field(ge=-MAX_SAFE_INTEGER, le=MAX_SAFE_INTEGER)]
+"""An integer ``canonical_bytes`` can serialize (JUM-D-24)."""
+
+# Separate types rather than ``SafeInt`` plus ``Field(ge=...)`` on the field: Pydantic keeps
+# only one lower bound when the two are combined, and a dropped bound fails silently.
+NonNegativeSafeInt = Annotated[int, Field(ge=0, le=MAX_SAFE_INTEGER)]
+PositiveSafeInt = Annotated[int, Field(ge=1, le=MAX_SAFE_INTEGER)]

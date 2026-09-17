@@ -3,6 +3,14 @@
 ``verify_chain`` is a pure function over envelopes already in memory. It reads nothing and
 stores nothing. It reports every problem it finds rather than stopping at the first, so the
 Cannae C2 view can show exactly where a journal went wrong.
+
+A hash chain alone cannot reveal a rewritten *tail*: whoever rewrites the last event can
+reseal it. A ``JournalCheckpoint`` records a journal's head outside that journal. The Cannae C2
+harness records other domains' checkpoints in its own chain (JUM-D-25), and ``verify_chain``
+checks a journal against one with ``expected_head``.
+
+Journal order is defined by the prior-digest links, not by identifier order. Identifiers
+minted in the same millisecond may sort either way, and that is acceptable.
 """
 
 from __future__ import annotations
@@ -11,12 +19,21 @@ from collections.abc import Sequence
 from enum import StrEnum
 from typing import Any
 
-from cannae_kernel._model import KernelModel, NonEmptyStr
+from cannae_kernel._model import (
+    KernelModel,
+    NonEmptyStr,
+    NonNegativeSafeInt,
+    PositiveSafeInt,
+    SafeInt,
+    UtcDatetime,
+)
+from cannae_kernel.actor import ActorRef
 from cannae_kernel.canonical import Digest, digest
+from cannae_kernel.domains import Domain
 from cannae_kernel.events import EventEnvelope, envelope_digest
-from cannae_kernel.ids import EventId
+from cannae_kernel.ids import CheckpointId, EventId, LifecycleId
 
-__all__ = ["ChainIssue", "ChainIssueCode", "ChainReport", "verify_chain"]
+__all__ = ["ChainIssue", "ChainIssueCode", "ChainReport", "JournalCheckpoint", "verify_chain"]
 
 
 class ChainIssueCode(StrEnum):
@@ -32,10 +49,28 @@ class ChainIssueCode(StrEnum):
     DUPLICATE_EVENT_ID = "DUPLICATE_EVENT_ID"
     LIFECYCLE_MISMATCH = "LIFECYCLE_MISMATCH"
     """A second ``lifecycle_id`` in a chain not declared multi-lifecycle."""
+    HEAD_MISMATCH = "HEAD_MISMATCH"
+    """The chain's head digest, head event or event count differs from ``expected_head``."""
+
+
+class JournalCheckpoint(KernelModel):
+    """A domain journal's head, recorded outside that journal (JUM-D-25)."""
+
+    checkpoint_id: CheckpointId
+    lifecycle_id: LifecycleId
+    domain: Domain
+    """The domain whose journal this checkpoint describes."""
+    head_event_id: EventId
+    head_digest: Digest
+    """The ``envelope_digest`` of the head event."""
+    event_count: PositiveSafeInt
+    """Events in the journal up to and including the head."""
+    taken_at: UtcDatetime
+    recorded_by: ActorRef
 
 
 class ChainIssue(KernelModel):
-    index: int
+    index: SafeInt
     """Position in the sequence passed to ``verify_chain``; ``-1`` for chain-level issues."""
     event_id: EventId | None
     code: ChainIssueCode
@@ -44,10 +79,23 @@ class ChainIssue(KernelModel):
 
 class ChainReport(KernelModel):
     ok: bool
-    event_count: int
+    event_count: NonNegativeSafeInt
     head_digest: Digest | None
     """The last envelope's recorded ``envelope_digest``: where the next append must link."""
     issues: tuple[ChainIssue, ...]
+
+
+def _head_mismatch(envelopes: Sequence[EventEnvelope[Any]], expected: JournalCheckpoint) -> str:
+    """Describe how the chain's head differs from ``expected``; empty when it matches."""
+    head = envelopes[-1] if envelopes else None
+    mismatches = []
+    if len(envelopes) != expected.event_count:
+        mismatches.append(f"event_count {len(envelopes)} != {expected.event_count}")
+    if head is None or head.envelope_digest != expected.head_digest:
+        mismatches.append("head digest differs from the checkpoint")
+    if head is None or head.event_id != expected.head_event_id:
+        mismatches.append("head event differs from the checkpoint")
+    return "; ".join(mismatches)
 
 
 def verify_chain(
@@ -55,11 +103,16 @@ def verify_chain(
     *,
     expected_prior_digest: str | None = None,
     multi_lifecycle: bool = False,
+    expected_head: JournalCheckpoint | None = None,
 ) -> ChainReport:
     """Check a journal, or a segment of one, and report every problem found.
 
     ``expected_prior_digest`` is what the first envelope must link to: ``None`` for the start
     of a journal, or the head digest of the segment that precedes this one.
+
+    ``expected_head`` compares the last envelope passed, and the number of envelopes passed,
+    with a checkpoint. To check a journal that has grown since the checkpoint was taken, pass
+    the journal up to the checkpoint: ``envelopes[: checkpoint.event_count]``.
     """
     issues: list[ChainIssue] = []
 
@@ -123,6 +176,10 @@ def verify_chain(
         # Link to what this envelope claims, so one broken link is reported once, not
         # cascaded through every later event.
         expected_link = env.envelope_digest
+
+    head_mismatch = _head_mismatch(envelopes, expected_head) if expected_head else ""
+    if head_mismatch:
+        add(-1, envelopes[-1] if envelopes else None, ChainIssueCode.HEAD_MISMATCH, head_mismatch)
 
     return ChainReport(
         ok=not issues,

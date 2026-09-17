@@ -12,7 +12,7 @@ from cannae_kernel.ids import LifecycleId, ObligationId, encode_ulid
 from tests.factories import fixed_clock, seeded_entropy, ulid
 
 ALL_TYPES = [
-    (ids.LifecycleId, ids.new_lifecycle_id, "lc_"),
+    (ids.LifecycleId, ids.new_lifecycle_id, "lif_"),
     (ids.ScenarioId, ids.new_scenario_id, "scn_"),
     (ids.IntentId, ids.new_intent_id, "int_"),
     (ids.OrderId, ids.new_order_id, "ord_"),
@@ -22,6 +22,7 @@ ALL_TYPES = [
     (ids.EventId, ids.new_event_id, "evt_"),
     (ids.ActorId, ids.new_actor_id, "act_"),
     (ids.HaltId, ids.new_halt_id, "hlt_"),
+    (ids.CheckpointId, ids.new_checkpoint_id, "ckp_"),
 ]
 
 
@@ -61,7 +62,7 @@ def test_ids_sort_by_clock() -> None:
 
 @pytest.mark.parametrize(("cls", "factory", "prefix"), ALL_TYPES)
 def test_wrong_prefix_is_rejected(cls: type[str], factory: object, prefix: str) -> None:
-    other = "obl_" if prefix != "obl_" else "lc_"
+    other = "obl_" if prefix != "obl_" else "lif_"
     with pytest.raises(ValueError, match="must start with"):
         cls(other + ulid(1))
 
@@ -78,7 +79,7 @@ def test_wrong_prefix_is_rejected(cls: type[str], factory: object, prefix: str) 
 )
 def test_non_canonical_ulid_is_rejected(body: str) -> None:
     with pytest.raises(ValueError, match="canonical"):
-        LifecycleId("lc_" + body)
+        LifecycleId("lif_" + body)
 
 
 def test_non_string_is_rejected() -> None:
@@ -112,6 +113,12 @@ def test_model_field_rejects_another_id_type_and_restores_type_from_json() -> No
     obl = ObligationId("obl_" + ulid(1))
     with pytest.raises(ValidationError):
         _Holder(lifecycle_id=obl)  # type: ignore[arg-type]
-    held = _Holder.model_validate_json('{"lifecycle_id": "lc_' + ulid(1) + '"}')
+    held = _Holder.model_validate_json('{"lifecycle_id": "lif_' + ulid(1) + '"}')
     assert type(held.lifecycle_id) is LifecycleId
     assert isinstance(held, BaseModel)
+
+
+def test_old_lifecycle_prefix_is_rejected() -> None:
+    # JUM-D-17: "lc_" read as Legiones Cannenses. It is no longer a lifecycle prefix.
+    with pytest.raises(ValueError, match="must start with 'lif_'"):
+        LifecycleId("lc_" + ulid(1))

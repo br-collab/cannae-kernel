@@ -30,8 +30,15 @@ from cannae_kernel.finality import (
     RevocabilityStatus,
 )
 from cannae_kernel.halt import HaltContext
-from cannae_kernel.ids import ActorId, EventId, HaltId, LifecycleId, encode_ulid
-from cannae_kernel.journal import ChainIssue, ChainIssueCode, ChainReport
+from cannae_kernel.ids import (
+    ActorId,
+    CheckpointId,
+    EventId,
+    HaltId,
+    LifecycleId,
+    encode_ulid,
+)
+from cannae_kernel.journal import ChainIssue, ChainIssueCode, ChainReport, JournalCheckpoint
 from cannae_kernel.provenance import Provenance
 from tests.factories import replace
 
@@ -70,6 +77,8 @@ actors = st.builds(
     entitlement_refs=st.lists(text, max_size=3).map(tuple),
     authenticated=st.booleans(),
 )
+# Authenticated humans: may authorize, and may declare or clear a halt (JUM-D-19), so the
+# "active" mutation below is valid in both directions.
 authorizers = actors.map(lambda a: replace(a, actor_kind=ActorKind.HUMAN, authenticated=True))
 
 
@@ -105,7 +114,7 @@ halts = st.builds(
         st.just("ALL"),
         st.lists(st.sampled_from(Domain), min_size=1, max_size=5, unique=True).map(tuple),
     ),
-    declared_by=actors,
+    declared_by=authorizers,
     declared_at=instants,
     reason=text,
 )
@@ -141,6 +150,21 @@ reports = st.builds(
         st.none(), st.binary(min_size=32, max_size=32).map(lambda b: "sha256:" + b.hex())
     ),
     issues=st.lists(issues, max_size=3).map(tuple),
+)
+
+
+digests = st.binary(min_size=32, max_size=32).map(lambda b: "sha256:" + b.hex())
+
+checkpoints = st.builds(
+    JournalCheckpoint,
+    checkpoint_id=_typed(CheckpointId),
+    lifecycle_id=_typed(LifecycleId),
+    domain=st.sampled_from(Domain),
+    head_event_id=_typed(EventId),
+    head_digest=digests,
+    event_count=st.integers(1, 10_000),
+    taken_at=instants,
+    recorded_by=actors,
 )
 
 
@@ -264,6 +288,19 @@ MUTATIONS: dict[str, tuple[st.SearchStrategy[Any], dict[str, Mutation]]] = {
             ),
         },
     ),
+    "JournalCheckpoint": (
+        checkpoints,
+        {
+            "checkpoint_id": lambda m: _other_id(m.checkpoint_id),
+            "lifecycle_id": lambda m: _other_id(m.lifecycle_id),
+            "domain": lambda m: _other_enum(m.domain),
+            "head_event_id": lambda m: _other_id(m.head_event_id),
+            "head_digest": lambda m: _flip_digest(m.head_digest),
+            "event_count": lambda m: m.event_count + 1,
+            "taken_at": lambda m: m.taken_at + MICRO,
+            "recorded_by": lambda m: replace(m.recorded_by, role=m.recorded_by.role + "x"),
+        },
+    ),
     "EventEnvelope": (
         envelopes(),
         {
@@ -301,6 +338,7 @@ def test_every_field_of_every_model_has_a_mutation() -> None:
         "FinalityAssertion": FinalityAssertion,
         "ChainIssue": ChainIssue,
         "ChainReport": ChainReport,
+        "JournalCheckpoint": JournalCheckpoint,
         "EventEnvelope": EventEnvelope,
     }
     assert set(fields_by_model) == set(declared)

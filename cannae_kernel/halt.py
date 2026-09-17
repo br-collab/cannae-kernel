@@ -2,16 +2,24 @@
 
 A halt that only one component can see is not a halt. The context is a value that is passed
 through every gate, and ``gate_under_halt`` is the single rule for reading it.
+
+Who may change a halt (JUM-D-19):
+
+- **Declaring** (``active=True``): any actor kind, including ``AGENT_H`` and
+  ``EXTERNAL_EMULATOR``, because halting is the safe direction. The actor must be
+  authenticated, so every halt is attributable.
+- **Clearing** (``active=False``): only an authenticated ``HUMAN``. ``declared_by`` records
+  the actor who set this version of the context.
 """
 
 from __future__ import annotations
 
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import model_validator
 
-from cannae_kernel._model import KernelModel, NonEmptyStr, UtcDatetime
-from cannae_kernel.actor import ActorRef
+from cannae_kernel._model import KernelModel, NonEmptyStr, PositiveSafeInt, UtcDatetime
+from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.disposition import Disposition
 from cannae_kernel.domains import Domain
 from cannae_kernel.ids import HaltId
@@ -23,13 +31,23 @@ ALL_DOMAINS: Literal["ALL"] = "ALL"
 
 class HaltContext(KernelModel):
     halt_id: HaltId
-    version: int = Field(ge=1)
+    version: PositiveSafeInt
     """Increases each time the halt is declared, widened, narrowed or cleared."""
     active: bool
     scope: tuple[Domain, ...] | Literal["ALL"]
     declared_by: ActorRef
     declared_at: UtcDatetime
     reason: NonEmptyStr
+
+    @model_validator(mode="after")
+    def _entitled_to_change_the_halt(self) -> Self:
+        if not self.declared_by.authenticated:
+            raise ValueError("the actor declaring or clearing a halt must be authenticated")
+        if not self.active and self.declared_by.actor_kind is not ActorKind.HUMAN:
+            raise ValueError(
+                f"only a HUMAN may clear a halt; {self.declared_by.actor_kind.value} may not"
+            )
+        return self
 
     @model_validator(mode="after")
     def _scope_well_formed(self) -> Self:

@@ -38,7 +38,10 @@ class EventEnvelope(KernelModel, Generic[PayloadT]):
     event_id: EventId
     lifecycle_id: LifecycleId
     parent_ids: tuple[EventId, ...]
-    """The events this one was caused by or derived from. Empty for a root event."""
+    """The events this one was caused by or derived from. Empty for a root event.
+
+    Event identifiers only (JUM-D-23). Cross-domain identifiers (intent, order, obligation)
+    belong in the payload."""
     producer_domain: Domain
     event_type: NonEmptyStr
     schema_version: NonEmptyStr

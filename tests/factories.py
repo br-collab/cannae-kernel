@@ -28,12 +28,19 @@ from cannae_kernel.finality import (
 from cannae_kernel.halt import HaltContext
 from cannae_kernel.ids import (
     ActorId,
+    CheckpointId,
     EventId,
     HaltId,
     LifecycleId,
     encode_ulid,
 )
-from cannae_kernel.journal import ChainIssue, ChainIssueCode, ChainReport, verify_chain
+from cannae_kernel.journal import (
+    ChainIssue,
+    ChainIssueCode,
+    ChainReport,
+    JournalCheckpoint,
+    verify_chain,
+)
 from cannae_kernel.provenance import Provenance
 
 T0 = datetime(2026, 9, 16, 21, 30, tzinfo=UTC)
@@ -136,7 +143,7 @@ def finality_assertion() -> FinalityAssertion:
     )
 
 
-LIFECYCLE = LifecycleId("lc_" + ulid(100))
+LIFECYCLE = LifecycleId("lif_" + ulid(100))
 
 
 def envelope(
@@ -188,6 +195,21 @@ def chain_report() -> ChainReport:
     return verify_chain(chain(2))
 
 
+def checkpoint_of(envelopes: list[EventEnvelope[Any]]) -> JournalCheckpoint:
+    """What the C2 harness would record for ``envelopes`` as they stand now."""
+    head = envelopes[-1]
+    return JournalCheckpoint(
+        checkpoint_id=CheckpointId("ckp_" + ulid(2000 + len(envelopes))),
+        lifecycle_id=head.lifecycle_id,
+        domain=Domain.C2,
+        head_event_id=head.event_id,
+        head_digest=head.envelope_digest,
+        event_count=len(envelopes),
+        taken_at=head.times.processing_time,
+        recorded_by=service(),
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -199,4 +221,5 @@ def golden_instances() -> dict[str, BaseModel]:
         "event_times": replace(times(), decision_time=T0 + timedelta(seconds=1)),
         "finality_assertion": finality_assertion(),
         "halt_context": halt_context(),
+        "journal_checkpoint": checkpoint_of(chain(2)),
     }

@@ -15,11 +15,11 @@
     },
     "chain_report": {
       "file": "chain_report.json",
-      "digest": "sha256:ec957dcbe494fbd06cbed195842cc02b9a8ae9e6b297d292019219a923cbee21"
+      "digest": "sha256:2bb39f5c256d557e1f1a1e84a9455d5346bd415613c0983ff3daef0ab6358d09"
     },
     "event_envelope": {
       "file": "event_envelope.json",
-      "digest": "sha256:87680375629ea2612e8f7d81e33e64da58cbd71be0d88e54b4f1c881adf1553c"
+      "digest": "sha256:4050b823416358c1c1022526624e5b2c5731f28746c27d789a23575a5e0a0309"
     },
     "event_times": {
       "file": "event_times.json",
@@ -32,6 +32,10 @@
     "halt_context": {
       "file": "halt_context.json",
       "digest": "sha256:6855a71f2b269f44cfb9de9513a12e5371c6eaaa4ea4240dfd469e83621ace8a"
+    },
+    "journal_checkpoint": {
+      "file": "journal_checkpoint.json",
+      "digest": "sha256:b1e29768c0b49da90ae90bcdbf7c26308e356071da20acec742202c7ef342828"
     }
   }
 }
