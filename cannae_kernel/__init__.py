@@ -3,4 +3,4 @@
 No domain logic. See CLAUDE.md for the rule and README.md for the modules.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"

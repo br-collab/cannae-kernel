@@ -2,6 +2,24 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.5.0 — 19 Sep 2026
+
+Wave 3, tasking order `W3-contract-freeze.md` § R4. Additive: no existing field, enum member or serialization rule changed, and the sixteen existing golden vectors are byte-identical.
+
+### New module `effects` — every operation declares what it does outside the process
+
+Earned by aureon #34: a route inventory asked *"does this mutate application state"*, answered no for two endpoints that send real email from a named person's account, and left both open to anonymous callers. The answer was right; the question was wrong.
+
+- **`ExternalEffect`** — `SENDS`, `PAYS`, `SUBMITS`, `PUBLISHES`, `WRITES_FOREIGN_STORE`, and `CONSUMES_CREDENTIALED_QUOTA`. The first five are the order's list. The sixth came out of the aureon sweep and the order did not anticipate it: an unauthenticated caller driving metered third-party calls under the operator's credentials. Nothing is written anywhere we can see, the traffic lands in a third party's logs attributed to us, and the caller chose the volume.
+- **`OperationEffects`** — `operation`, `effects` and `note`, all required. **There is no default**, so an operation nobody has classified cannot be constructed, and `note` is required because #34's inventory recorded a verdict without the reasoning, which is the kind nobody can disagree with.
+- `is_contained` / `is_irreversible_outside` — the question R4 says to ask, by name.
+
+`effects` is sorted and deduplicated before validation, so the same operation declared in two orders carries one digest rather than two.
+
+Whether an uncontained operation requires an authenticated operator, a second approver or a halt check is domain policy and stays in the domains.
+
+One new golden vector: `operation_effects`.
+
 ## 0.4.0 — 19 Sep 2026
 
 Wave 3, tasking order `W3-contract-freeze.md` § R3. Additive, but it **extends the canonical serialization rules** — see below. The fourteen existing golden vectors are byte-identical.

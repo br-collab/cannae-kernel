@@ -33,6 +33,7 @@ def test_every_kernel_model_has_a_golden_vector() -> None:
             "actor",
             "authority",
             "clocks",
+            "effects",
             "events",
             "finality",
             "halt",
