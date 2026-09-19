@@ -47,21 +47,30 @@ from pydantic import model_validator
 
 from cannae_kernel._model import KernelModel, NonEmptyStr, PositiveSafeInt
 from cannae_kernel.actor import ActorRef
+from cannae_kernel.clocks import EventTimes
 from cannae_kernel.effects import OperationEffects
-from cannae_kernel.ids import IntentId, LifecycleId
+from cannae_kernel.ids import EventId, IntentId, LifecycleId
 from cannae_kernel.provenance import Provenance
 from cannae_kernel.session import SessionContext
 
 __all__ = [
     "APPROVED_INTENT_VERSION",
+    "EXECUTION_EVENT_VERSION",
+    "OBSERVED_EXECUTION",
     "ApprovedIntentEnvelope",
     "Digest",
+    "ExecutionEvent",
 ]
 
 #: `sha256:<64 hex>`, as `canonical.digest` produces it.
 Digest = NonEmptyStr
 
 APPROVED_INTENT_VERSION: Final = "cannae.approved_intent/1.0"
+EXECUTION_EVENT_VERSION: Final = "cannae.execution_event/1.0"
+
+OBSERVED_EXECUTION: Final = frozenset({Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC})
+"""An execution is something that happened: a venue reported it, or an emulator
+standing in for one did. Nothing else can be an execution."""
 
 
 class ApprovedIntentEnvelope(KernelModel):
@@ -134,5 +143,73 @@ class ApprovedIntentEnvelope(KernelModel):
             raise ValueError(
                 f"an approved intent is HUMAN_JUDGMENT, not {self.provenance.value}: "
                 "every approval gate requires explicit operator action (CAOM-001)"
+            )
+        return self
+
+
+class ExecutionEvent(KernelModel):
+    """The venue emulator to Legiones Cannenses: a fill, as reported.
+
+    A **venue fact** (CL-JUM-001 §5). Either a venue reported it
+    (``FACT_EXTERNAL``) or a synthetic emulator standing in for one did
+    (``FACT_SYNTHETIC``). Both may cross this boundary; R1 decides separately
+    what may satisfy a gate, and a synthetic fill never satisfies one that
+    requires an observation.
+
+    That distinction is the point of this contract rather than a detail of it.
+    CL-JUM-001 §2 records that execution events are today "fabricated in Aureon
+    C2", with "delete fabrication (A4)" against them. A fabricated fill and a
+    reported one were the same shape, so nothing downstream could tell them
+    apart. Here they cannot be the same shape: the provenance is required, and
+    the emulator cannot label its output as a venue's report without saying so.
+    """
+
+    schema_version: Literal["cannae.execution_event/1.0"] = EXECUTION_EVENT_VERSION
+
+    event_id: EventId
+    lifecycle_id: LifecycleId
+    intent_id: IntentId
+    """Which approved intent this executes against. The identity, not the digest:
+    a fill refers to the intent as a thing, and a re-revised intent does not make
+    an earlier fill stop having happened."""
+
+    intent_digest: Digest
+    """*And* the digest of the revision it was executed against, which does move.
+    Both, because "which intent" and "which version of it" are different
+    questions and a break investigation needs the second one."""
+
+    times: EventTimes
+    """The four clocks (charter §17.9). Keeping them apart is what prevents
+    future-information leakage; `EventTimes` already enforces their ordering."""
+
+    session: SessionContext
+    """Which session the fill occurred in, stated by whoever reported it.
+
+    Beyond the order's literal list — R3 names only the approved-intent and
+    settlement-obligation envelopes. Included because the session is a *fact
+    about this fill*, not a property of the gate that reads it: Overnight bands
+    are 20% against 5% in the regular session, so the same price is ordinary in
+    one and remarkable in the other. Deriving it downstream from ``event_time``
+    is the error R3 exists to prevent, and by 6 December 2026 an instant does not
+    determine a session. Reported in `_reports/W3-report.md` as an addition.
+    """
+
+    provenance: Provenance
+    payload_digest: Digest
+    """``digest`` of the domain's own execution report — price, quantity, venue,
+    fees. Those need domain knowledge to validate, so they stay in L.C."""
+
+    @model_validator(mode="after")
+    def _an_execution_is_something_that_happened(self) -> Self:
+        """A forecast of a fill is not a fill.
+
+        Without this, a model's expected execution and a venue's report are the
+        same type, and the only thing separating them is that nobody has yet
+        made the mistake.
+        """
+        if self.provenance not in OBSERVED_EXECUTION:
+            raise ValueError(
+                f"an execution event is FACT_EXTERNAL or FACT_SYNTHETIC, not "
+                f"{self.provenance.value}: an execution is something that happened"
             )
         return self
