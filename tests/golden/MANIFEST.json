@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -8,6 +8,10 @@
     "actor_ref": {
       "file": "actor_ref.json",
       "digest": "sha256:0ac715a3c589eac7ac4eb96c88ceec560e3ae6d1af07a2002aca3aaeea4579e9"
+    },
+    "approved_intent_envelope": {
+      "file": "approved_intent_envelope.json",
+      "digest": "sha256:4d22519ebca3634ccc18cc43c869384c0bcb6abd19ff5c5521d40b6fcdcf2fcd"
     },
     "authority_record": {
       "file": "authority_record.json",
