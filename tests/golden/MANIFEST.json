@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -56,6 +56,10 @@
     "observed_fact": {
       "file": "observed_fact.json",
       "digest": "sha256:accabfbc96315c2bfcf163218d28409ac805fdf5b3bf918f32181eac7ebfef18"
+    },
+    "operation_effects": {
+      "file": "operation_effects.json",
+      "digest": "sha256:c039082d6fb1be3c92be0d525c974a1aaf3704319e358e66b463f6c1bf98226b"
     },
     "recorded": {
       "file": "recorded.json",

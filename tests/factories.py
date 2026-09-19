@@ -20,6 +20,7 @@ from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.authority import AuthorityRecord
 from cannae_kernel.clocks import EventTimes
 from cannae_kernel.domains import Domain
+from cannae_kernel.effects import ExternalEffect, OperationEffects
 from cannae_kernel.events import EventEnvelope, seal
 from cannae_kernel.finality import (
     ConditionalityStatus,
@@ -257,6 +258,15 @@ def session_context() -> SessionContext:
     return SessionContext(session=MarketSession.OVERNIGHT, business_date=business_date())
 
 
+def operation_effects() -> OperationEffects:
+    """aureon #34: sends real email, changes no application state."""
+    return OperationEffects(
+        operation="POST /api/email/test",
+        effects=(ExternalEffect.SENDS,),
+        note="sends real email from the operator's account; nothing in-process changes",
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -274,6 +284,7 @@ def golden_instances() -> dict[str, BaseModel]:
         "measurement": measurement(),
         "measurement_constant": constant(),
         "observed_fact": measurement().observed(),
+        "operation_effects": operation_effects(),
         "recorded": recorded(),
         "session_context": session_context(),
     }
