@@ -19,12 +19,14 @@ from cannae_kernel.absence import AbsenceKind, Absent, Recorded
 from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.authority import AuthorityRecord
 from cannae_kernel.clocks import EventTimes
+from cannae_kernel.disposition import Disposition
 from cannae_kernel.domains import Domain
 from cannae_kernel.effects import ExternalEffect, OperationEffects
 from cannae_kernel.envelopes import (
     ApprovedIntentEnvelope,
     ClearingTransformation,
     ExecutionEvent,
+    ObligationAcceptanceRecord,
     SettlementObligationEnvelope,
 )
 from cannae_kernel.events import EventEnvelope, seal
@@ -331,6 +333,21 @@ def settlement_obligation() -> SettlementObligationEnvelope:
     )
 
 
+def obligation_acceptance() -> ObligationAcceptanceRecord:
+    """Contract 5 of 5. A quorum hold: nothing recorded, and why."""
+    return ObligationAcceptanceRecord(
+        obligation_id=ObligationId("obl_01M2P20SY00000000000000001"),
+        obligation_digest="sha256:" + "d" * 64,
+        disposition=Disposition.HOLD,
+        dsor_record=Absent(
+            kind=AbsenceKind.NOTHING_RECORDED,
+            reason="no instruction was issued",
+        ),
+        decided_by=service(),
+        provenance=Provenance.POLICY_RESULT,
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -350,6 +367,7 @@ def golden_instances() -> dict[str, BaseModel]:
         "journal_checkpoint": checkpoint_of(chain(2)),
         "measurement": measurement(),
         "measurement_constant": constant(),
+        "obligation_acceptance": obligation_acceptance(),
         "observed_fact": measurement().observed(),
         "operation_effects": operation_effects(),
         "recorded": recorded(),

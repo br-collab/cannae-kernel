@@ -2,6 +2,20 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 1.0.0 — 19 Sep 2026
+
+Wave 3, the fifth and last of the five contracts. **All five cross-domain envelopes are now frozen at 1.0**, which is what 1.0.0 marks. Additive: the twenty-one existing golden vectors are byte-identical.
+
+### `ObligationAcceptanceRecord`, frozen at `cannae.obligation_acceptance/1.0`
+
+Atreides out. **The contract JUM-D-01 wrote the rule for**: it "references its digest rather than copying its economics", because one owner per field is what stops two domains disagreeing about the same number. It holds `obligation_digest`, so the only disagreement possible is "this is not the obligation I sent" — which is answerable.
+
+It is also where W2B7-V-01 ends up. `dsor_record` is `Recorded[str] | Absent`: on a quorum hold it is an `Absent` carrying `NOTHING_RECORDED` and the reason *"no instruction was issued"*. Not a null, and not a phase a surface may render as "recorded".
+
+One validator: **a PASS with no DSOR record is refused.** Observed against Atreides v0.4.1 — `emit_for_human_entry` and `gate_held` both persist a record, `quorum_required_hold` persists nothing — so acceptance implies a record, and a PASS without one claims an acceptance nobody can point at. That is the exact shape the settlement surface rendered as "recorded".
+
+One new golden vector: `obligation_acceptance`.
+
 ## 0.9.0 — 19 Sep 2026
 
 Wave 3, the fourth of the five contracts. Additive: the twenty existing golden vectors are byte-identical.

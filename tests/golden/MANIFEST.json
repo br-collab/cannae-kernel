@@ -1,5 +1,5 @@
 {
-  "version": "0.9.0",
+  "version": "1.0.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -64,6 +64,10 @@
     "measurement_constant": {
       "file": "measurement_constant.json",
       "digest": "sha256:5c5af8347010addd72888a0e664604e3469e968d0f8142195682c3c1a02ccbc2"
+    },
+    "obligation_acceptance": {
+      "file": "obligation_acceptance.json",
+      "digest": "sha256:a0459d175aadf7d5a29a238c63121f53164b4c7be777a3664fb723879df8ffc0"
     },
     "observed_fact": {
       "file": "observed_fact.json",

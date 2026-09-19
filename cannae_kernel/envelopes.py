@@ -46,8 +46,10 @@ from typing import Final, Literal, Self
 from pydantic import model_validator
 
 from cannae_kernel._model import KernelModel, NonEmptyStr, PositiveSafeInt
+from cannae_kernel.absence import Absent, Recorded
 from cannae_kernel.actor import ActorRef
 from cannae_kernel.clocks import EventTimes
+from cannae_kernel.disposition import Disposition
 from cannae_kernel.effects import OperationEffects
 from cannae_kernel.ids import EventId, IntentId, LifecycleId, ObligationId
 from cannae_kernel.provenance import Provenance
@@ -57,12 +59,14 @@ __all__ = [
     "APPROVED_INTENT_VERSION",
     "CLEARING_TRANSFORMATION_VERSION",
     "EXECUTION_EVENT_VERSION",
+    "OBLIGATION_ACCEPTANCE_VERSION",
     "OBSERVED_EXECUTION",
     "SETTLEMENT_OBLIGATION_VERSION",
     "ApprovedIntentEnvelope",
     "ClearingTransformation",
     "Digest",
     "ExecutionEvent",
+    "ObligationAcceptanceRecord",
     "SettlementObligationEnvelope",
 ]
 
@@ -73,6 +77,7 @@ APPROVED_INTENT_VERSION: Final = "cannae.approved_intent/1.0"
 EXECUTION_EVENT_VERSION: Final = "cannae.execution_event/1.0"
 CLEARING_TRANSFORMATION_VERSION: Final = "cannae.clearing_transformation/1.0"
 SETTLEMENT_OBLIGATION_VERSION: Final = "cannae.settlement_obligation/1.0"
+OBLIGATION_ACCEPTANCE_VERSION: Final = "cannae.obligation_acceptance/1.0"
 
 OBSERVED_EXECUTION: Final = frozenset({Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC})
 """An execution is something that happened: a venue reported it, or an emulator
@@ -331,5 +336,62 @@ class SettlementObligationEnvelope(KernelModel):
             raise ValueError(
                 f"a settlement obligation is a POLICY_RESULT, not "
                 f"{self.provenance.value}: it is formed by applying clearing rules"
+            )
+        return self
+
+
+class ObligationAcceptanceRecord(KernelModel):
+    """Atreides out: whether an obligation was accepted, and what was recorded.
+
+    **The contract JUM-D-01 wrote the rule for.** The map realises the Atreides
+    inventory's "AcceptedSettlementObligationEnvelope" as the obligation plus an
+    acceptance record that *"references its digest rather than copying its
+    economics"*, because one owner per field is what stops two domains
+    disagreeing about the same number. This is that record.
+
+    It is also where W2B7-V-01 ends up. The settlement surface marked the DSOR
+    (Decision System of Record) phase "recorded" on a quorum hold, when Atreides
+    writes nothing there *because no instruction was issued* — and that reason
+    existed nowhere, so the surface had nothing truthful to show. Here the
+    reason is a field: ``dsor_record`` is either a record or an
+    :class:`~cannae_kernel.absence.Absent` carrying why there is none.
+    """
+
+    schema_version: Literal["cannae.obligation_acceptance/1.0"] = OBLIGATION_ACCEPTANCE_VERSION
+
+    obligation_id: ObligationId
+    obligation_digest: Digest
+    """The digest of the obligation being answered — never a copy of it.
+
+    If Atreides restated the amounts, two domains would hold the same number and
+    could disagree about it. It holds the digest, so the only disagreement
+    possible is "this is not the obligation I sent", which is answerable."""
+
+    disposition: Disposition
+    """What Atreides decided. ``PASS`` is acceptance; anything else is not."""
+
+    dsor_record: Recorded[NonEmptyStr] | Absent
+    """The Decision System of Record entry, or the stated reason there is none.
+
+    A quorum hold persists nothing because no instruction was issued. That is an
+    ``Absent`` with ``NOTHING_RECORDED`` and that reason — not a null, and not a
+    phase the surface may render as "recorded"."""
+
+    decided_by: ActorRef
+    provenance: Provenance
+
+    @model_validator(mode="after")
+    def _an_acceptance_was_recorded(self) -> Self:
+        """If it was accepted, something was written. Otherwise the record is the claim.
+
+        Observed against Atreides v0.4.1: ``emit_for_human_entry`` and
+        ``gate_held`` both persist a record; ``quorum_required_hold`` persists
+        nothing. So a PASS with no DSOR record is the exact shape W2B7-V-01
+        surfaced — an acceptance nobody can point at.
+        """
+        if self.disposition is Disposition.PASS and isinstance(self.dsor_record, Absent):
+            raise ValueError(
+                "an accepted obligation was recorded somewhere: a PASS with no DSOR "
+                f"record claims an acceptance nobody can point at ({self.dsor_record.reason})"
             )
         return self

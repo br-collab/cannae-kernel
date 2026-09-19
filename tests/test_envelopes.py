@@ -19,18 +19,22 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 from pydantic import ValidationError
 
+from cannae_kernel.absence import AbsenceKind, Absent, Recorded
 from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.canonical import digest
 from cannae_kernel.clocks import EventTimes
+from cannae_kernel.disposition import Disposition
 from cannae_kernel.effects import ExternalEffect, OperationEffects
 from cannae_kernel.envelopes import (
     APPROVED_INTENT_VERSION,
     CLEARING_TRANSFORMATION_VERSION,
     EXECUTION_EVENT_VERSION,
+    OBLIGATION_ACCEPTANCE_VERSION,
     SETTLEMENT_OBLIGATION_VERSION,
     ApprovedIntentEnvelope,
     ClearingTransformation,
     ExecutionEvent,
+    ObligationAcceptanceRecord,
     SettlementObligationEnvelope,
 )
 from cannae_kernel.ids import ActorId, EventId, IntentId, LifecycleId, ObligationId
@@ -458,3 +462,104 @@ def test_the_obligation_round_trips() -> None:
     envelope = _obligation()
     assert SettlementObligationEnvelope.model_validate_json(envelope.model_dump_json()) == envelope
     assert envelope.schema_version == SETTLEMENT_OBLIGATION_VERSION
+
+
+# =================================================================================
+# Contract 5 of 5: `ObligationAcceptanceRecord` — Atreides out
+# =================================================================================
+#
+# The contract JUM-D-01 wrote the rule for: it "references its digest rather than
+# copying its economics". It is also where W2B7-V-01 ends up — the quorum hold
+# that recorded nothing, and had nowhere to say why.
+
+QUORUM_HOLD = Absent(
+    kind=AbsenceKind.NOTHING_RECORDED,
+    reason="no instruction was issued",
+)
+
+
+def _acceptance(**overrides: object) -> ObligationAcceptanceRecord:
+    fields: dict[str, object] = {
+        "obligation_id": OBLIGATION,
+        "obligation_digest": PAYLOAD,
+        "disposition": Disposition.PASS,
+        "dsor_record": Recorded[str](value="dsor_01M2P20SY00000000000000001"),
+        "decided_by": ActorRef(
+            actor_id=ActorId("act_01M2P20SY00000000000000002"),
+            actor_kind=ActorKind.DETERMINISTIC_SERVICE,
+            role="Settlement Operations Analyst",
+            entitlement_refs=("accept_obligation",),
+            authenticated=True,
+        ),
+        "provenance": Provenance.POLICY_RESULT,
+    }
+    fields.update(overrides)
+    return ObligationAcceptanceRecord(**fields)  # type: ignore[arg-type]
+
+
+def test_it_references_the_obligation_and_never_restates_it() -> None:
+    """JUM-D-01: one owner per field is what stops two domains disagreeing."""
+    fields = set(ObligationAcceptanceRecord.model_fields)
+    for economic in (
+        "cusip",
+        "net_delivery_quantity",
+        "net_payment_amount",
+        "amount",
+        "counterparty_id",
+        "settlement_date",
+    ):
+        assert economic not in fields, (
+            f"{economic} is the obligation's field; restating it creates a second owner"
+        )
+    assert _acceptance().obligation_digest == PAYLOAD
+
+
+def test_a_quorum_hold_records_nothing_and_says_why() -> None:
+    """W2B7-V-01, with the reason finally in a field rather than nowhere."""
+    held = _acceptance(disposition=Disposition.HOLD, dsor_record=QUORUM_HOLD)
+    assert isinstance(held.dsor_record, Absent)
+    assert held.dsor_record.reason == "no instruction was issued"
+    assert held.dsor_record.disposition is Disposition.INDETERMINATE
+    assert "nothing recorded" in held.dsor_record.label
+
+
+def test_an_acceptance_with_no_record_is_refused() -> None:
+    """A PASS nobody can point at is exactly what the surface rendered as "recorded".
+
+    Observed against Atreides v0.4.1: emit_for_human_entry and gate_held both
+    persist a record; quorum_required_hold persists nothing. So PASS implies a
+    record, and the type says so.
+    """
+    with pytest.raises(ValidationError, match="nobody can point at"):
+        _acceptance(disposition=Disposition.PASS, dsor_record=QUORUM_HOLD)
+
+
+@pytest.mark.parametrize(
+    "disposition",
+    [d for d in Disposition if d is not Disposition.PASS],
+    ids=lambda d: d.value,
+)
+def test_any_other_disposition_may_record_nothing(disposition: Disposition) -> None:
+    """Only acceptance requires a record. A hold that wrote nothing is honest."""
+    record = _acceptance(disposition=disposition, dsor_record=QUORUM_HOLD)
+    assert isinstance(record.dsor_record, Absent)
+
+
+def test_a_recorded_identifier_cannot_be_blank() -> None:
+    """`DSOR ` with nothing after it was the ledger defect; an empty id is not a record."""
+    with pytest.raises(ValidationError):
+        _acceptance(dsor_record=Recorded[str](value=""))
+
+
+def test_an_absence_cannot_be_read_back_as_a_record() -> None:
+    held = _acceptance(disposition=Disposition.HOLD, dsor_record=QUORUM_HOLD)
+    round_tripped = ObligationAcceptanceRecord.model_validate_json(held.model_dump_json())
+    assert round_tripped == held
+    assert isinstance(round_tripped.dsor_record, Absent)
+    assert round_tripped.dsor_record.reason == "no instruction was issued"
+
+
+def test_the_acceptance_round_trips() -> None:
+    record = _acceptance()
+    assert ObligationAcceptanceRecord.model_validate_json(record.model_dump_json()) == record
+    assert record.schema_version == OBLIGATION_ACCEPTANCE_VERSION
