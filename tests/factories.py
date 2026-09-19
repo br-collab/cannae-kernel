@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from datetime import date as dt_date
 from decimal import Decimal
 from typing import Any, TypeVar
 
@@ -44,6 +45,7 @@ from cannae_kernel.journal import (
 )
 from cannae_kernel.measurement import Constant, Measurement
 from cannae_kernel.provenance import Provenance
+from cannae_kernel.session import BusinessDate, MarketSession, SessionContext
 
 T0 = datetime(2026, 9, 16, 21, 30, tzinfo=UTC)
 
@@ -241,11 +243,26 @@ def constant() -> Constant:
     )
 
 
+def business_date() -> BusinessDate:
+    """Monday 7 December 2026 on the Fedwire Funds calendar, fixed by the rail."""
+    return BusinessDate(
+        value=dt_date(2026, 12, 7),
+        calendar="Fedwire Funds",
+        established_by="the rail's published calendar",
+    )
+
+
+def session_context() -> SessionContext:
+    """The Overnight session: 20% bands, and a business date nothing derived."""
+    return SessionContext(session=MarketSession.OVERNIGHT, business_date=business_date())
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
         "absent": absent(),
         "actor_ref": human(),
+        "business_date": business_date(),
         "authority_record": authority_record(),
         "chain_issue": chain_issue(),
         "chain_report": chain_report(),
@@ -258,4 +275,5 @@ def golden_instances() -> dict[str, BaseModel]:
         "measurement_constant": constant(),
         "observed_fact": measurement().observed(),
         "recorded": recorded(),
+        "session_context": session_context(),
     }

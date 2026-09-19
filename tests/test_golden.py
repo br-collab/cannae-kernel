@@ -38,6 +38,7 @@ def test_every_kernel_model_has_a_golden_vector() -> None:
             "halt",
             "journal",
             "measurement",
+            "session",
         )
         for cls in vars(__import__(f"cannae_kernel.{module}", fromlist=["_"])).values()
         if isinstance(cls, type)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -134,3 +134,22 @@ def test_kernel_decimal_rejects_floats_on_the_way_in() -> None:
     with pytest.raises(ValidationError, match="finite"):
         _Money(amount=Decimal("NaN"))
     assert _Money.model_validate_json('{"amount": "1.50"}').amount == Decimal("1.50")
+
+
+# --- a calendar day is not an instant (W3 § R3) --------------------------------
+
+
+def test_a_date_canonicalizes_as_the_calendar_day_it_is() -> None:
+    assert canonical_bytes_of(date(2026, 12, 7)) == b'"2026-12-07"'
+
+
+def test_a_datetime_does_not_degrade_to_a_date() -> None:
+    """`datetime` subclasses `date`, so the branch order is load-bearing.
+
+    If the date branch ran first, every instant in every envelope would silently
+    lose its time and zone — and the digests would still agree with each other,
+    so nothing downstream would notice.
+    """
+    instant = datetime(2026, 12, 7, 3, 0, tzinfo=UTC)
+    assert canonical_bytes_of(instant) == b'"2026-12-07T03:00:00.000000Z"'
+    assert canonical_bytes_of(instant) != canonical_bytes_of(instant.date())

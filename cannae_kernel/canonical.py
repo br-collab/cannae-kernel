@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Annotated, Any
@@ -56,7 +56,7 @@ class CanonicalizationError(TypeError):
 
 def _canonical_value(value: Any, path: str) -> Any:  # noqa: PLR0911, PLR0912
     # One branch per JSON type is the rule table itself; splitting it would hide the order.
-    # Order matters: bool is an int, and StrEnum members are str.
+    # Order matters: bool is an int, StrEnum members are str, and datetime is a date.
     if value is None or isinstance(value, bool):
         return value
     if isinstance(value, Enum):
@@ -83,6 +83,11 @@ def _canonical_value(value: Any, path: str) -> Any:  # noqa: PLR0911, PLR0912
             f"{u.year:04d}-{u.month:02d}-{u.day:02d}T{u.hour:02d}:{u.minute:02d}:"
             f"{u.second:02d}.{u.microsecond:06d}Z"
         )
+    if isinstance(value, date):
+        # After datetime, which subclasses date: an instant must not silently
+        # canonicalize as a calendar day. A bare date has no time and no zone,
+        # so it is rendered as the calendar day it is (W3 § R3, BusinessDate).
+        return f"{value.year:04d}-{value.month:02d}-{value.day:02d}"
     if isinstance(value, BaseModel):
         return _canonical_value(value.model_dump(mode="python"), path)
     if isinstance(value, dict):
