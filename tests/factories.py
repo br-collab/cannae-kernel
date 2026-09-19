@@ -19,9 +19,16 @@ from cannae_kernel.absence import AbsenceKind, Absent, Recorded
 from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.authority import AuthorityRecord
 from cannae_kernel.clocks import EventTimes
+from cannae_kernel.disposition import Disposition
 from cannae_kernel.domains import Domain
 from cannae_kernel.effects import ExternalEffect, OperationEffects
-from cannae_kernel.envelopes import ApprovedIntentEnvelope, ExecutionEvent
+from cannae_kernel.envelopes import (
+    ApprovedIntentEnvelope,
+    ClearingTransformation,
+    ExecutionEvent,
+    ObligationAcceptanceRecord,
+    SettlementObligationEnvelope,
+)
 from cannae_kernel.events import EventEnvelope, seal
 from cannae_kernel.finality import (
     ConditionalityStatus,
@@ -37,6 +44,7 @@ from cannae_kernel.ids import (
     HaltId,
     IntentId,
     LifecycleId,
+    ObligationId,
     encode_ulid,
 )
 from cannae_kernel.journal import (
@@ -302,6 +310,44 @@ def execution_event() -> ExecutionEvent:
     )
 
 
+def clearing_transformation() -> ClearingTransformation:
+    """Contract 3 of 5. Two executions netted under a named rule set."""
+    return ClearingTransformation(
+        lifecycle_id=LifecycleId("lif_01M2P20SY00000000000000001"),
+        input_digests=("sha256:" + "1" * 64, "sha256:" + "2" * 64),
+        output_digest="sha256:" + "c" * 64,
+        rule_set_version="ficc-gsd-net/2026.3",
+        provenance=Provenance.POLICY_RESULT,
+    )
+
+
+def settlement_obligation() -> SettlementObligationEnvelope:
+    """Contract 4 of 5. Formed by L.C., handed to Atreides, on a named calendar."""
+    return SettlementObligationEnvelope(
+        obligation_id=ObligationId("obl_01M2P20SY00000000000000001"),
+        lifecycle_id=LifecycleId("lif_01M2P20SY00000000000000001"),
+        transformation_digest="sha256:" + "c" * 64,
+        session=session_context(),
+        provenance=Provenance.POLICY_RESULT,
+        payload_digest="sha256:" + "d" * 64,
+    )
+
+
+def obligation_acceptance() -> ObligationAcceptanceRecord:
+    """Contract 5 of 5. A quorum hold: nothing recorded, and why."""
+    return ObligationAcceptanceRecord(
+        obligation_id=ObligationId("obl_01M2P20SY00000000000000001"),
+        obligation_digest="sha256:" + "d" * 64,
+        disposition=Disposition.HOLD,
+        dsor_record=Absent(
+            kind=AbsenceKind.NOTHING_RECORDED,
+            reason="no instruction was issued",
+        ),
+        decided_by=service(),
+        provenance=Provenance.POLICY_RESULT,
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -310,6 +356,7 @@ def golden_instances() -> dict[str, BaseModel]:
         "approved_intent_envelope": approved_intent_envelope(),
         "business_date": business_date(),
         "authority_record": authority_record(),
+        "clearing_transformation": clearing_transformation(),
         "chain_issue": chain_issue(),
         "chain_report": chain_report(),
         "event_envelope": envelope(0, prior=None),
@@ -320,8 +367,10 @@ def golden_instances() -> dict[str, BaseModel]:
         "journal_checkpoint": checkpoint_of(chain(2)),
         "measurement": measurement(),
         "measurement_constant": constant(),
+        "obligation_acceptance": obligation_acceptance(),
         "observed_fact": measurement().observed(),
         "operation_effects": operation_effects(),
         "recorded": recorded(),
         "session_context": session_context(),
+        "settlement_obligation": settlement_obligation(),
     }

@@ -19,17 +19,25 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 from pydantic import ValidationError
 
+from cannae_kernel.absence import AbsenceKind, Absent, Recorded
 from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.canonical import digest
 from cannae_kernel.clocks import EventTimes
+from cannae_kernel.disposition import Disposition
 from cannae_kernel.effects import ExternalEffect, OperationEffects
 from cannae_kernel.envelopes import (
     APPROVED_INTENT_VERSION,
+    CLEARING_TRANSFORMATION_VERSION,
     EXECUTION_EVENT_VERSION,
+    OBLIGATION_ACCEPTANCE_VERSION,
+    SETTLEMENT_OBLIGATION_VERSION,
     ApprovedIntentEnvelope,
+    ClearingTransformation,
     ExecutionEvent,
+    ObligationAcceptanceRecord,
+    SettlementObligationEnvelope,
 )
-from cannae_kernel.ids import ActorId, EventId, IntentId, LifecycleId
+from cannae_kernel.ids import ActorId, EventId, IntentId, LifecycleId, ObligationId
 from cannae_kernel.provenance import Provenance
 from cannae_kernel.session import BusinessDate, MarketSession, SessionContext
 
@@ -283,3 +291,275 @@ def test_the_execution_event_round_trips() -> None:
     event = _execution()
     assert ExecutionEvent.model_validate_json(event.model_dump_json()) == event
     assert event.schema_version == EXECUTION_EVENT_VERSION
+
+
+# =================================================================================
+# Contract 3 of 5: `ClearingTransformation` — within Legiones Cannenses
+# =================================================================================
+#
+# JUM-D-01 has this one "carried by reference". A transformation is a claim that
+# these inputs produced that output under these rules — not a second copy of the
+# economics, which already have an owner.
+
+D1 = "sha256:" + "1" * 64
+D2 = "sha256:" + "2" * 64
+
+
+def _transformation(**overrides: object) -> ClearingTransformation:
+    fields: dict[str, object] = {
+        "lifecycle_id": LIFECYCLE,
+        "input_digests": (D1, D2),
+        "output_digest": PAYLOAD,
+        "rule_set_version": "ficc-gsd-net/2026.3",
+        "provenance": Provenance.POLICY_RESULT,
+    }
+    fields.update(overrides)
+    return ClearingTransformation(**fields)  # type: ignore[arg-type]
+
+
+def test_a_transformation_names_what_it_consumed_and_produced() -> None:
+    transformation = _transformation()
+    assert transformation.input_digests == (D1, D2)
+    assert transformation.output_digest == PAYLOAD
+
+
+def test_a_transformation_with_no_inputs_is_an_invented_output() -> None:
+    """The fabrication shape: a well-formed record asserting an underived result."""
+    with pytest.raises(ValidationError, match="invented rather than derived"):
+        _transformation(input_digests=())
+
+
+def test_an_execution_cannot_be_cleared_twice() -> None:
+    """Double-counting is a netting error that otherwise validates."""
+    with pytest.raises(ValidationError, match="cannot be cleared twice"):
+        _transformation(input_digests=(D1, D1))
+
+
+def test_the_order_of_inputs_is_part_of_the_claim() -> None:
+    """Netting is not commutative once rounding enters, so two orders are two claims."""
+    assert digest(_transformation(input_digests=(D1, D2))) != digest(
+        _transformation(input_digests=(D2, D1))
+    )
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [p for p in Provenance if p is not Provenance.POLICY_RESULT],
+    ids=lambda p: p.value,
+)
+def test_a_transformation_is_computed_not_observed_or_judged(provenance: Provenance) -> None:
+    with pytest.raises(ValidationError, match="computed, not observed or judged"):
+        _transformation(provenance=provenance)
+
+
+def test_a_transformation_carries_no_economics() -> None:
+    """ "Carried by reference" (JUM-D-01): restating a number creates a second owner."""
+    fields = set(ClearingTransformation.model_fields)
+    for economic in ("amount", "quantity", "net_amount", "price", "currency", "cusip"):
+        assert economic not in fields, f"{economic} has an owner already; do not restate it"
+
+
+def test_the_rule_set_version_is_required() -> None:
+    """A deterministic result is only reproducible against the rules that made it."""
+    with pytest.raises(ValidationError):
+        _transformation(rule_set_version="")
+
+
+def test_the_transformation_round_trips() -> None:
+    transformation = _transformation()
+    assert (
+        ClearingTransformation.model_validate_json(transformation.model_dump_json())
+        == transformation
+    )
+    assert transformation.schema_version == CLEARING_TRANSFORMATION_VERSION
+
+
+# =================================================================================
+# Contract 4 of 5: `SettlementObligationEnvelope` — L.C. to Atreides
+# =================================================================================
+#
+# The handover where the domain split becomes real. L.C. stops at the formed
+# obligation (JUM-D-02); Atreides builds the instructions. R3 names this envelope
+# as one of the two that must carry the session and the settlement business date.
+
+OBLIGATION = ObligationId("obl_01M2P20SY00000000000000001")
+
+
+def _obligation(**overrides: object) -> SettlementObligationEnvelope:
+    fields: dict[str, object] = {
+        "obligation_id": OBLIGATION,
+        "lifecycle_id": LIFECYCLE,
+        "transformation_digest": D1,
+        "session": _session(),
+        "provenance": Provenance.POLICY_RESULT,
+        "payload_digest": PAYLOAD,
+    }
+    fields.update(overrides)
+    return SettlementObligationEnvelope(**fields)  # type: ignore[arg-type]
+
+
+def test_an_obligation_names_the_transformation_that_formed_it() -> None:
+    """One that cannot is one nobody can reconcile."""
+    assert _obligation().transformation_digest == D1
+    with pytest.raises(ValidationError):
+        _obligation(transformation_digest="")
+
+
+def test_the_settlement_business_date_is_stated_by_the_forming_domain() -> None:
+    """R3, and the reason R3 exists.
+
+    Atreides already refuses to derive one: PROCESSING_DATE_NOT_ESTABLISHED. The
+    envelope carries it so Atreides never has to.
+    """
+    envelope = _obligation()
+    assert envelope.session.business_date.calendar == "Fedwire Funds"
+    assert envelope.session.business_date.established_by
+    with pytest.raises(ValidationError):
+        _obligation(session=None)
+
+
+def test_two_calendars_give_two_obligations() -> None:
+    """A Fedwire business date and a market trading day are not interchangeable."""
+    fedwire = _obligation()
+    market = _obligation(
+        session=SessionContext(
+            session=MarketSession.REGULAR,
+            business_date=BusinessDate(
+                value=date(2026, 12, 7),
+                calendar="NMS trading day",
+                established_by="the session-closure message",
+            ),
+        )
+    )
+    assert digest(fedwire) != digest(market)
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [p for p in Provenance if p is not Provenance.POLICY_RESULT],
+    ids=lambda p: p.value,
+)
+def test_an_obligation_is_formed_by_rules_not_observed(provenance: Provenance) -> None:
+    with pytest.raises(ValidationError, match="applying clearing rules"):
+        _obligation(provenance=provenance)
+
+
+def test_the_obligation_carries_no_economics() -> None:
+    """Atreides validates the CUSIP and the amounts; the kernel cannot, so it does not hold them."""
+    fields = set(SettlementObligationEnvelope.model_fields)
+    for economic in (
+        "cusip",
+        "net_delivery_quantity",
+        "net_payment_amount",
+        "counterparty_id",
+        "rail",
+        "amount",
+    ):
+        assert economic not in fields, f"{economic} needs domain knowledge to validate"
+
+
+def test_the_obligation_round_trips() -> None:
+    envelope = _obligation()
+    assert SettlementObligationEnvelope.model_validate_json(envelope.model_dump_json()) == envelope
+    assert envelope.schema_version == SETTLEMENT_OBLIGATION_VERSION
+
+
+# =================================================================================
+# Contract 5 of 5: `ObligationAcceptanceRecord` — Atreides out
+# =================================================================================
+#
+# The contract JUM-D-01 wrote the rule for: it "references its digest rather than
+# copying its economics". It is also where W2B7-V-01 ends up — the quorum hold
+# that recorded nothing, and had nowhere to say why.
+
+QUORUM_HOLD = Absent(
+    kind=AbsenceKind.NOTHING_RECORDED,
+    reason="no instruction was issued",
+)
+
+
+def _acceptance(**overrides: object) -> ObligationAcceptanceRecord:
+    fields: dict[str, object] = {
+        "obligation_id": OBLIGATION,
+        "obligation_digest": PAYLOAD,
+        "disposition": Disposition.PASS,
+        "dsor_record": Recorded[str](value="dsor_01M2P20SY00000000000000001"),
+        "decided_by": ActorRef(
+            actor_id=ActorId("act_01M2P20SY00000000000000002"),
+            actor_kind=ActorKind.DETERMINISTIC_SERVICE,
+            role="Settlement Operations Analyst",
+            entitlement_refs=("accept_obligation",),
+            authenticated=True,
+        ),
+        "provenance": Provenance.POLICY_RESULT,
+    }
+    fields.update(overrides)
+    return ObligationAcceptanceRecord(**fields)  # type: ignore[arg-type]
+
+
+def test_it_references_the_obligation_and_never_restates_it() -> None:
+    """JUM-D-01: one owner per field is what stops two domains disagreeing."""
+    fields = set(ObligationAcceptanceRecord.model_fields)
+    for economic in (
+        "cusip",
+        "net_delivery_quantity",
+        "net_payment_amount",
+        "amount",
+        "counterparty_id",
+        "settlement_date",
+    ):
+        assert economic not in fields, (
+            f"{economic} is the obligation's field; restating it creates a second owner"
+        )
+    assert _acceptance().obligation_digest == PAYLOAD
+
+
+def test_a_quorum_hold_records_nothing_and_says_why() -> None:
+    """W2B7-V-01, with the reason finally in a field rather than nowhere."""
+    held = _acceptance(disposition=Disposition.HOLD, dsor_record=QUORUM_HOLD)
+    assert isinstance(held.dsor_record, Absent)
+    assert held.dsor_record.reason == "no instruction was issued"
+    assert held.dsor_record.disposition is Disposition.INDETERMINATE
+    assert "nothing recorded" in held.dsor_record.label
+
+
+def test_an_acceptance_with_no_record_is_refused() -> None:
+    """A PASS nobody can point at is exactly what the surface rendered as "recorded".
+
+    Observed against Atreides v0.4.1: emit_for_human_entry and gate_held both
+    persist a record; quorum_required_hold persists nothing. So PASS implies a
+    record, and the type says so.
+    """
+    with pytest.raises(ValidationError, match="nobody can point at"):
+        _acceptance(disposition=Disposition.PASS, dsor_record=QUORUM_HOLD)
+
+
+@pytest.mark.parametrize(
+    "disposition",
+    [d for d in Disposition if d is not Disposition.PASS],
+    ids=lambda d: d.value,
+)
+def test_any_other_disposition_may_record_nothing(disposition: Disposition) -> None:
+    """Only acceptance requires a record. A hold that wrote nothing is honest."""
+    record = _acceptance(disposition=disposition, dsor_record=QUORUM_HOLD)
+    assert isinstance(record.dsor_record, Absent)
+
+
+def test_a_recorded_identifier_cannot_be_blank() -> None:
+    """`DSOR ` with nothing after it was the ledger defect; an empty id is not a record."""
+    with pytest.raises(ValidationError):
+        _acceptance(dsor_record=Recorded[str](value=""))
+
+
+def test_an_absence_cannot_be_read_back_as_a_record() -> None:
+    held = _acceptance(disposition=Disposition.HOLD, dsor_record=QUORUM_HOLD)
+    round_tripped = ObligationAcceptanceRecord.model_validate_json(held.model_dump_json())
+    assert round_tripped == held
+    assert isinstance(round_tripped.dsor_record, Absent)
+    assert round_tripped.dsor_record.reason == "no instruction was issued"
+
+
+def test_the_acceptance_round_trips() -> None:
+    record = _acceptance()
+    assert ObligationAcceptanceRecord.model_validate_json(record.model_dump_json()) == record
+    assert record.schema_version == OBLIGATION_ACCEPTANCE_VERSION

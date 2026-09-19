@@ -2,6 +2,52 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 1.0.0 — 19 Sep 2026
+
+Wave 3, the fifth and last of the five contracts. **All five cross-domain envelopes are now frozen at 1.0**, which is what 1.0.0 marks. Additive: the twenty-one existing golden vectors are byte-identical.
+
+### `ObligationAcceptanceRecord`, frozen at `cannae.obligation_acceptance/1.0`
+
+Atreides out. **The contract JUM-D-01 wrote the rule for**: it "references its digest rather than copying its economics", because one owner per field is what stops two domains disagreeing about the same number. It holds `obligation_digest`, so the only disagreement possible is "this is not the obligation I sent" — which is answerable.
+
+It is also where W2B7-V-01 ends up. `dsor_record` is `Recorded[str] | Absent`: on a quorum hold it is an `Absent` carrying `NOTHING_RECORDED` and the reason *"no instruction was issued"*. Not a null, and not a phase a surface may render as "recorded".
+
+One validator: **a PASS with no DSOR record is refused.** Observed against Atreides v0.4.1 — `emit_for_human_entry` and `gate_held` both persist a record, `quorum_required_hold` persists nothing — so acceptance implies a record, and a PASS without one claims an acceptance nobody can point at. That is the exact shape the settlement surface rendered as "recorded".
+
+One new golden vector: `obligation_acceptance`.
+
+## 0.9.0 — 19 Sep 2026
+
+Wave 3, the fourth of the five contracts. Additive: the twenty existing golden vectors are byte-identical.
+
+### `SettlementObligationEnvelope`, frozen at `cannae.settlement_obligation/1.0`
+
+Legiones Cannenses to Atreides — the handover where the domain split becomes real. L.C. stops at the formed obligation (JUM-D-02); Atreides builds the instructions; neither restates the other's fields.
+
+`transformation_digest` names what formed the obligation, because one that cannot is one nobody can reconcile. `provenance` must be `POLICY_RESULT`: an obligation is formed by applying clearing rules, not observed.
+
+**This is the envelope R3 was written for.** The settlement business date is stated here, by the domain that formed the obligation, on a named calendar — and never re-derived downstream, which is exactly the `PROCESSING_DATE_NOT_ESTABLISHED` break Atreides already refuses to make. Fedwire Funds runs 9:00pm ET the preceding calendar day to 7:00pm ET, Monday to Friday, excluding Reserve Bank holidays, so a Fedwire business date and a market trading day for the same instant are different answers. A test asserts the two produce different digests.
+
+One new golden vector: `settlement_obligation`.
+
+## 0.8.0 — 19 Sep 2026
+
+Wave 3, the third of the five contracts. Additive: the nineteen existing golden vectors are byte-identical.
+
+### `ClearingTransformation`, frozen at `cannae.clearing_transformation/1.0`
+
+Within Legiones Cannenses. JUM-D-01 has this one "carried by reference", and that phrase is the design: a transformation is a claim that *these* inputs produced *that* output under *these* rules, not a second copy of economics that already have an owner.
+
+`input_digests`, `output_digest`, `rule_set_version`, and `provenance`, which must be `POLICY_RESULT` — it is computed, not observed and not judged.
+
+Three validators:
+
+- **No inputs is not an empty transformation; it is an invented output.** The fabrication shape again: a well-formed record asserting a result nothing produced, which cannot be reproduced, reviewed or disputed.
+- **The same execution cannot be cleared twice.** Double-counting is a netting error that otherwise validates perfectly.
+- **Input order is part of the claim.** Netting is not commutative once rounding enters, so two orderings are two different transformations and carry two digests.
+
+One new golden vector: `clearing_transformation`.
+
 ## 0.7.0 — 19 Sep 2026
 
 Wave 3, the second of the five contracts. Additive: the eighteen existing golden vectors are byte-identical.

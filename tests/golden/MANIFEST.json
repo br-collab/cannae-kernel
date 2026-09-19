@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "1.0.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -28,6 +28,10 @@
     "chain_report": {
       "file": "chain_report.json",
       "digest": "sha256:2bb39f5c256d557e1f1a1e84a9455d5346bd415613c0983ff3daef0ab6358d09"
+    },
+    "clearing_transformation": {
+      "file": "clearing_transformation.json",
+      "digest": "sha256:d9065f904eede90a7a3c3e562174f1c2fb0c71f2724500632fdbab2deb2710cb"
     },
     "event_envelope": {
       "file": "event_envelope.json",
@@ -61,6 +65,10 @@
       "file": "measurement_constant.json",
       "digest": "sha256:5c5af8347010addd72888a0e664604e3469e968d0f8142195682c3c1a02ccbc2"
     },
+    "obligation_acceptance": {
+      "file": "obligation_acceptance.json",
+      "digest": "sha256:a0459d175aadf7d5a29a238c63121f53164b4c7be777a3664fb723879df8ffc0"
+    },
     "observed_fact": {
       "file": "observed_fact.json",
       "digest": "sha256:accabfbc96315c2bfcf163218d28409ac805fdf5b3bf918f32181eac7ebfef18"
@@ -76,6 +84,10 @@
     "session_context": {
       "file": "session_context.json",
       "digest": "sha256:bf3ae89feb724393a0482528227720761600c3b5c87d80f585d235eca711193b"
+    },
+    "settlement_obligation": {
+      "file": "settlement_obligation.json",
+      "digest": "sha256:31e0553296b7987f273b863fc13a0f0d49b0a9206a72451cd5a8e53179076d21"
     }
   }
 }

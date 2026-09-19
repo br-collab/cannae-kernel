@@ -46,20 +46,28 @@ from typing import Final, Literal, Self
 from pydantic import model_validator
 
 from cannae_kernel._model import KernelModel, NonEmptyStr, PositiveSafeInt
+from cannae_kernel.absence import Absent, Recorded
 from cannae_kernel.actor import ActorRef
 from cannae_kernel.clocks import EventTimes
+from cannae_kernel.disposition import Disposition
 from cannae_kernel.effects import OperationEffects
-from cannae_kernel.ids import EventId, IntentId, LifecycleId
+from cannae_kernel.ids import EventId, IntentId, LifecycleId, ObligationId
 from cannae_kernel.provenance import Provenance
 from cannae_kernel.session import SessionContext
 
 __all__ = [
     "APPROVED_INTENT_VERSION",
+    "CLEARING_TRANSFORMATION_VERSION",
     "EXECUTION_EVENT_VERSION",
+    "OBLIGATION_ACCEPTANCE_VERSION",
     "OBSERVED_EXECUTION",
+    "SETTLEMENT_OBLIGATION_VERSION",
     "ApprovedIntentEnvelope",
+    "ClearingTransformation",
     "Digest",
     "ExecutionEvent",
+    "ObligationAcceptanceRecord",
+    "SettlementObligationEnvelope",
 ]
 
 #: `sha256:<64 hex>`, as `canonical.digest` produces it.
@@ -67,6 +75,9 @@ Digest = NonEmptyStr
 
 APPROVED_INTENT_VERSION: Final = "cannae.approved_intent/1.0"
 EXECUTION_EVENT_VERSION: Final = "cannae.execution_event/1.0"
+CLEARING_TRANSFORMATION_VERSION: Final = "cannae.clearing_transformation/1.0"
+SETTLEMENT_OBLIGATION_VERSION: Final = "cannae.settlement_obligation/1.0"
+OBLIGATION_ACCEPTANCE_VERSION: Final = "cannae.obligation_acceptance/1.0"
 
 OBSERVED_EXECUTION: Final = frozenset({Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC})
 """An execution is something that happened: a venue reported it, or an emulator
@@ -211,5 +222,176 @@ class ExecutionEvent(KernelModel):
             raise ValueError(
                 f"an execution event is FACT_EXTERNAL or FACT_SYNTHETIC, not "
                 f"{self.provenance.value}: an execution is something that happened"
+            )
+        return self
+
+
+class ClearingTransformation(KernelModel):
+    """Within Legiones Cannenses: what clearing did to a set of executions.
+
+    JUM-D-01 has this one "carried by reference", and that phrase is the whole
+    design. A transformation is not a new set of economics; it is a statement
+    that *these* inputs produced *that* output, deterministically, under a named
+    rule set. The economics belong to the inputs and the output, each of which
+    already has an owner.
+
+    So the envelope names what went in, what came out, and which rules were
+    applied — and carries none of the numbers itself.
+    """
+
+    schema_version: Literal["cannae.clearing_transformation/1.0"] = CLEARING_TRANSFORMATION_VERSION
+
+    lifecycle_id: LifecycleId
+    input_digests: tuple[Digest, ...]
+    """The executions this transformation consumed, by digest, in the order it
+    consumed them. Order is part of the claim: netting is not commutative once
+    rounding enters, so two orderings are two different transformations."""
+
+    output_digest: Digest
+    """What it produced. A digest, because the output's economics have their own
+    owner and restating them here would create a second one."""
+
+    rule_set_version: NonEmptyStr
+    """Which rules were applied. A deterministic result is only reproducible
+    against the rules that produced it, and those change."""
+
+    provenance: Provenance
+    """R1: a clearing transformation is a ``POLICY_RESULT`` — the output of a
+    deterministic policy. It is not an observation and not a judgment."""
+
+    @model_validator(mode="after")
+    def _a_transformation_transforms_something(self) -> Self:
+        """No inputs is not an empty transformation; it is an invented output.
+
+        This is the fabrication shape again: a well-formed record asserting a
+        result that nothing produced. An output with no inputs cannot be
+        reproduced, reviewed or disputed.
+        """
+        if not self.input_digests:
+            raise ValueError(
+                "a clearing transformation with no inputs did not transform anything: "
+                "its output was invented rather than derived"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _the_same_input_is_not_consumed_twice(self) -> Self:
+        """Double-counting an execution is a netting error that still validates."""
+        if len(set(self.input_digests)) != len(self.input_digests):
+            raise ValueError(
+                "the same execution appears twice in input_digests: an execution "
+                "cannot be cleared twice"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _a_transformation_is_a_policy_result(self) -> Self:
+        if self.provenance is not Provenance.POLICY_RESULT:
+            raise ValueError(
+                f"a clearing transformation is a POLICY_RESULT, not "
+                f"{self.provenance.value}: it is computed, not observed or judged"
+            )
+        return self
+
+
+class SettlementObligationEnvelope(KernelModel):
+    """Legiones Cannenses to Atreides: an obligation formed and handed over.
+
+    The handover where the domain split becomes real. L.C. stops at the formed
+    obligation (JUM-D-02); Atreides builds the settlement instructions. Neither
+    restates the other's fields.
+
+    R3 names this envelope and the approved-intent envelope as the two that must
+    carry the session and the settlement business date, and this is the one where
+    the calendar bites hardest: Fedwire Funds runs 9:00pm Eastern the preceding
+    calendar day to 7:00pm Eastern, Monday to Friday, **excluding Reserve Bank
+    holidays**. "There is always a cash leg" is the sentence the whole domain
+    split rests on, and the calendar is part of the leg.
+    """
+
+    schema_version: Literal["cannae.settlement_obligation/1.0"] = SETTLEMENT_OBLIGATION_VERSION
+
+    obligation_id: ObligationId
+    lifecycle_id: LifecycleId
+    transformation_digest: Digest
+    """The clearing transformation that formed this obligation. An obligation
+    that cannot name what produced it is one nobody can reconcile."""
+
+    session: SessionContext
+    """R3, and the reason R3 exists. The settlement business date is **stated
+    here by the domain that formed the obligation**, on a named calendar, and is
+    never re-derived downstream from a timestamp — which is exactly the
+    ``PROCESSING_DATE_NOT_ESTABLISHED`` break Atreides already refuses to make."""
+
+    provenance: Provenance
+    payload_digest: Digest
+    """``digest`` of the obligation's economics — the CUSIP, the delivery
+    quantity, the payment amount, the counterparty. Atreides validates those;
+    the kernel cannot, so it does not hold them."""
+
+    @model_validator(mode="after")
+    def _an_obligation_is_formed_not_observed(self) -> Self:
+        """L.C. forms obligations by applying rules; it does not observe them."""
+        if self.provenance is not Provenance.POLICY_RESULT:
+            raise ValueError(
+                f"a settlement obligation is a POLICY_RESULT, not "
+                f"{self.provenance.value}: it is formed by applying clearing rules"
+            )
+        return self
+
+
+class ObligationAcceptanceRecord(KernelModel):
+    """Atreides out: whether an obligation was accepted, and what was recorded.
+
+    **The contract JUM-D-01 wrote the rule for.** The map realises the Atreides
+    inventory's "AcceptedSettlementObligationEnvelope" as the obligation plus an
+    acceptance record that *"references its digest rather than copying its
+    economics"*, because one owner per field is what stops two domains
+    disagreeing about the same number. This is that record.
+
+    It is also where W2B7-V-01 ends up. The settlement surface marked the DSOR
+    (Decision System of Record) phase "recorded" on a quorum hold, when Atreides
+    writes nothing there *because no instruction was issued* — and that reason
+    existed nowhere, so the surface had nothing truthful to show. Here the
+    reason is a field: ``dsor_record`` is either a record or an
+    :class:`~cannae_kernel.absence.Absent` carrying why there is none.
+    """
+
+    schema_version: Literal["cannae.obligation_acceptance/1.0"] = OBLIGATION_ACCEPTANCE_VERSION
+
+    obligation_id: ObligationId
+    obligation_digest: Digest
+    """The digest of the obligation being answered — never a copy of it.
+
+    If Atreides restated the amounts, two domains would hold the same number and
+    could disagree about it. It holds the digest, so the only disagreement
+    possible is "this is not the obligation I sent", which is answerable."""
+
+    disposition: Disposition
+    """What Atreides decided. ``PASS`` is acceptance; anything else is not."""
+
+    dsor_record: Recorded[NonEmptyStr] | Absent
+    """The Decision System of Record entry, or the stated reason there is none.
+
+    A quorum hold persists nothing because no instruction was issued. That is an
+    ``Absent`` with ``NOTHING_RECORDED`` and that reason — not a null, and not a
+    phase the surface may render as "recorded"."""
+
+    decided_by: ActorRef
+    provenance: Provenance
+
+    @model_validator(mode="after")
+    def _an_acceptance_was_recorded(self) -> Self:
+        """If it was accepted, something was written. Otherwise the record is the claim.
+
+        Observed against Atreides v0.4.1: ``emit_for_human_entry`` and
+        ``gate_held`` both persist a record; ``quorum_required_hold`` persists
+        nothing. So a PASS with no DSOR record is the exact shape W2B7-V-01
+        surfaced — an acceptance nobody can point at.
+        """
+        if self.disposition is Disposition.PASS and isinstance(self.dsor_record, Absent):
+            raise ValueError(
+                "an accepted obligation was recorded somewhere: a PASS with no DSOR "
+                f"record claims an acceptance nobody can point at ({self.dsor_record.reason})"
             )
         return self

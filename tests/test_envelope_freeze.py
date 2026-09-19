@@ -27,9 +27,15 @@ from pydantic import BaseModel
 
 from cannae_kernel.envelopes import (
     APPROVED_INTENT_VERSION,
+    CLEARING_TRANSFORMATION_VERSION,
     EXECUTION_EVENT_VERSION,
+    OBLIGATION_ACCEPTANCE_VERSION,
+    SETTLEMENT_OBLIGATION_VERSION,
     ApprovedIntentEnvelope,
+    ClearingTransformation,
     ExecutionEvent,
+    ObligationAcceptanceRecord,
+    SettlementObligationEnvelope,
 )
 
 #: version -> shape digest. One row per frozen contract version. Rows are added,
@@ -41,11 +47,23 @@ SHAPES: dict[str, str] = {
     "cannae.execution_event/1.0": (
         "10229a34038e0ebcfc86465b5805bc1892fdb8485ddea0a051fe34b20888bf3b"
     ),
+    "cannae.clearing_transformation/1.0": (
+        "b2c5550b1b4e6ba978c6c8058a28a53d83c9a1d1dd702e06d342e2466a826592"
+    ),
+    "cannae.settlement_obligation/1.0": (
+        "5e6370b34bef94545b1450b71e8ec65f9527a41517f350ad463b56fb666043bc"
+    ),
+    "cannae.obligation_acceptance/1.0": (
+        "6a3d1101b403fbd14253339314d0f3ebba8e53e9b53bba15a87fae9e98b85a23"
+    ),
 }
 
 FROZEN: list[tuple[str, type[BaseModel]]] = [
     (APPROVED_INTENT_VERSION, ApprovedIntentEnvelope),
     (EXECUTION_EVENT_VERSION, ExecutionEvent),
+    (CLEARING_TRANSFORMATION_VERSION, ClearingTransformation),
+    (SETTLEMENT_OBLIGATION_VERSION, SettlementObligationEnvelope),
+    (OBLIGATION_ACCEPTANCE_VERSION, ObligationAcceptanceRecord),
 ]
 
 
