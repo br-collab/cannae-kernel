@@ -43,7 +43,9 @@ STRESS = Decimal("0.38")
 
 def _measurement(provenance: Provenance = Provenance.FACT_EXTERNAL) -> Measurement:
     return Measurement(
-        value=STRESS, provenance=provenance, source="OFR Financial Stress Index",
+        value=STRESS,
+        provenance=provenance,
+        source="OFR Financial Stress Index",
         observed_at=T0,
     )
 
@@ -51,12 +53,14 @@ def _measurement(provenance: Provenance = Provenance.FACT_EXTERNAL) -> Measureme
 def _fallback() -> Constant:
     """F1, exactly: the constant that stood in when nothing could be read."""
     return Constant(
-        value=STRESS, source="fallback_macro_snapshot",
+        value=STRESS,
+        source="fallback_macro_snapshot",
         reason="FRED and the OFR page were both unreachable",
     )
 
 
 # --- the requirement -----------------------------------------------------------
+
 
 def test_a_new_caller_cannot_reintroduce_the_class() -> None:
     """The reason the check lives in the type and not in a filter.
@@ -95,18 +99,21 @@ def test_the_fabricated_reading_cannot_satisfy_a_gate() -> None:
 
 # --- what a measurement is -----------------------------------------------------
 
+
 def test_a_measurement_must_say_when_it_was_observed() -> None:
     """A value without an observation time is not a measurement."""
     with pytest.raises(ValidationError):
-        Measurement(value=STRESS, provenance=Provenance.FACT_EXTERNAL,
-                    source="OFR Financial Stress Index")  # type: ignore[call-arg]
+        Measurement(
+            value=STRESS, provenance=Provenance.FACT_EXTERNAL, source="OFR Financial Stress Index"
+        )  # type: ignore[call-arg]
 
 
 def test_a_constant_cannot_be_given_an_observation_time() -> None:
     """Not merely absent by convention — the field does not exist."""
     with pytest.raises(ValidationError):
-        Constant(value=STRESS, source="fallback_macro_snapshot",
-                 reason="unreachable", observed_at=T0)  # type: ignore[call-arg]
+        Constant(
+            value=STRESS, source="fallback_macro_snapshot", reason="unreachable", observed_at=T0
+        )  # type: ignore[call-arg]
 
 
 def test_a_constant_must_say_why_there_is_no_observation() -> None:
@@ -117,6 +124,7 @@ def test_a_constant_must_say_why_there_is_no_observation() -> None:
 
 
 # --- which provenances satisfy a gate ------------------------------------------
+
 
 def test_a_synthetic_reading_may_cross_a_boundary_but_not_satisfy_a_gate() -> None:
     """P08 §4: do not block the input, type it, and make the consumer refuse."""
@@ -143,7 +151,9 @@ def test_a_gate_may_admit_a_derived_reading_but_has_to_say_so() -> None:
 
 
 @pytest.mark.parametrize("provenance", [Provenance.FORECAST, Provenance.RECOMMENDATION])
-def test_a_forecast_is_never_an_observation_however_widely_a_gate_admits(provenance) -> None:
+def test_a_forecast_is_never_an_observation_however_widely_a_gate_admits(
+    provenance: Provenance,
+) -> None:
     """A gate cannot opt into treating something unseen as something seen."""
     reading = _measurement(provenance)
     with pytest.raises((NotAnObservationError, ValidationError)):
@@ -157,9 +167,10 @@ def test_the_default_admitted_set_is_external_authority_only() -> None:
 
 # --- the boundary --------------------------------------------------------------
 
+
 def test_a_serialized_reading_cannot_be_read_back_as_the_other_kind() -> None:
     """The discriminator is what stops a constant arriving as a measurement."""
-    adapter = TypeAdapter(Reading)
+    adapter: TypeAdapter[Measurement | Constant] = TypeAdapter(Reading)
     for reading in (_measurement(), _fallback()):
         assert adapter.validate_json(adapter.dump_json(reading)) == reading
 
@@ -171,5 +182,7 @@ def test_a_serialized_reading_cannot_be_read_back_as_the_other_kind() -> None:
 def test_an_observed_fact_keeps_what_it_was_built_from() -> None:
     observed = require_observation(_measurement())
     assert (observed.value, observed.source, observed.observed_at) == (
-        STRESS, "OFR Financial Stress Index", T0,
+        STRESS,
+        "OFR Financial Stress Index",
+        T0,
     )
