@@ -29,6 +29,7 @@ def test_every_kernel_model_has_a_golden_vector() -> None:
     kernel_models = {
         cls.__name__
         for module in (
+            "absence",
             "actor",
             "authority",
             "clocks",
