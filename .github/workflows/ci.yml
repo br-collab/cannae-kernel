@@ -9,8 +9,11 @@ name: CI
 on:
   push:
     branches: [main]
+  # Every pull request, whatever it targets. Filtering on `branches: [main]` meant a
+  # pull request based on another branch — a stacked one, say — got no checks at all:
+  # not a failure and no red mark, simply nothing to see. Found when contracts 3, 4
+  # and 5 were opened as a stack and all three reported "no checks reported".
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
