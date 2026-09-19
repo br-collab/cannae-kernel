@@ -41,6 +41,7 @@ from cannae_kernel.journal import (
     JournalCheckpoint,
     verify_chain,
 )
+from cannae_kernel.measurement import Constant, Measurement
 from cannae_kernel.provenance import Provenance
 
 T0 = datetime(2026, 9, 16, 21, 30, tzinfo=UTC)
@@ -210,6 +211,25 @@ def checkpoint_of(envelopes: list[EventEnvelope[Any]]) -> JournalCheckpoint:
     )
 
 
+def measurement() -> Measurement:
+    """An external reading, with the publisher and the time it was seen."""
+    return Measurement(
+        value=Decimal("0.3800"),
+        provenance=Provenance.FACT_EXTERNAL,
+        source="OFR Financial Stress Index",
+        observed_at=T0,
+    )
+
+
+def constant() -> Constant:
+    """A fallback default: no observation, and the reason there was none."""
+    return Constant(
+        value=Decimal("0.3800"),
+        source="fallback_macro_snapshot",
+        reason="the publisher was unreachable",
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -222,4 +242,7 @@ def golden_instances() -> dict[str, BaseModel]:
         "finality_assertion": finality_assertion(),
         "halt_context": halt_context(),
         "journal_checkpoint": checkpoint_of(chain(2)),
+        "measurement": measurement(),
+        "measurement_constant": constant(),
+        "observed_fact": measurement().observed(),
     }

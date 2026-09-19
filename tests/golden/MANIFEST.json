@@ -1,5 +1,5 @@
 {
-  "version": "0.1.1",
+  "version": "0.2.0",
   "vectors": {
     "actor_ref": {
       "file": "actor_ref.json",
@@ -36,6 +36,18 @@
     "journal_checkpoint": {
       "file": "journal_checkpoint.json",
       "digest": "sha256:b1e29768c0b49da90ae90bcdbf7c26308e356071da20acec742202c7ef342828"
+    },
+    "measurement": {
+      "file": "measurement.json",
+      "digest": "sha256:53a3315e038283312e7414eabd0e9894cf479cbf231af0d32973e8aabe630986"
+    },
+    "measurement_constant": {
+      "file": "measurement_constant.json",
+      "digest": "sha256:5c5af8347010addd72888a0e664604e3469e968d0f8142195682c3c1a02ccbc2"
+    },
+    "observed_fact": {
+      "file": "observed_fact.json",
+      "digest": "sha256:accabfbc96315c2bfcf163218d28409ac805fdf5b3bf918f32181eac7ebfef18"
     }
   }
 }

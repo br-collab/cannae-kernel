@@ -16,6 +16,7 @@ Version `0.1.0`, untagged. Built in Wave 1 of the joint upgrade map (CL-JUM-001)
 | `canonical` | `canonical_bytes(model)` gives deterministic JSON (JavaScript Object Notation) bytes. `digest(model)` gives `sha256:<hex>`. |
 | `provenance` | `Provenance`: `FACT_EXTERNAL`, `FACT_SYNTHETIC`, `FORECAST`, `RECOMMENDATION`, `HUMAN_JUDGMENT`, `POLICY_RESULT`. |
 | `disposition` | `Disposition`: `PASS`, `HOLD`, `BLOCK`, `INDETERMINATE`. `coerce_disposition` accepts exact values only; anything else becomes `INDETERMINATE`, never `PASS`. |
+| `measurement` | `Measurement` (value, provenance, source, `observed_at`), `Constant` (a value with no observation, and the reason there is none) and `ObservedFact`, which is what a gate that requires an observation accepts. `require_observation` is the consumer's refusal; a gate widens what it admits explicitly, at its own call site. A constant has no path to an `ObservedFact`. |
 | `domains` | `Domain`: `AUREON`, `LC`, `ATREIDES`, `C2`, `EMULATOR`. |
 | `clocks` | `EventTimes`: event, observation, processing and optional decision time, all UTC, in non-decreasing order. |
 | `actor` | `ActorRef` and `ActorKind`. The kernel does not know who an `ActorId` is: the actor registry (identifier to person or service, role and entitlements) belongs to the Cannae C2 harness. |
