@@ -2,6 +2,24 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.7.0 — 19 Sep 2026
+
+Wave 3, the second of the five contracts. Additive: the eighteen existing golden vectors are byte-identical.
+
+### `ExecutionEvent`, frozen at `cannae.execution_event/1.0`
+
+The venue emulator to Legiones Cannenses: a fill, as reported. A **venue fact** (CL-JUM-001 §5).
+
+`provenance` is required and must be `FACT_EXTERNAL` (a venue reported it) or `FACT_SYNTHETIC` (an emulator standing in for one did). **A forecast of a fill is not a fill**, so nothing else validates.
+
+That distinction is the contract rather than a detail of it. CL-JUM-001 §2 records execution events as today "fabricated in Aureon C2", with "delete fabrication (A4)" against them: a fabricated fill and a reported one were the same shape, so nothing downstream could tell them apart. They are no longer the same shape, and the two differ in the serialized bytes, so a consumer that never asks the question still cannot round-trip one as the other.
+
+It carries `intent_id` **and** `intent_digest` — which intent, and which revision of it. Different questions, and a break investigation needs the second.
+
+`session` is included although R3 names only the approved-intent and settlement-obligation envelopes. The session is a fact about the fill rather than a property of the gate that reads it: Overnight bands are 20% against 5% in the regular session, so the same price is ordinary in one and remarkable in the other. Recorded as an addition in `_reports/W3-report.md`.
+
+One new golden vector: `execution_event`.
+
 ## 0.6.0 — 19 Sep 2026
 
 Wave 3, `W3-contract-freeze.md`, the first of the five contracts. Additive: the seventeen existing golden vectors are byte-identical.

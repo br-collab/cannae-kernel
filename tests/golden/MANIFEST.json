@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.7.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -36,6 +36,10 @@
     "event_times": {
       "file": "event_times.json",
       "digest": "sha256:8a55b4faff32c03a3048273ed5669cbe7703df4e8bda23fcf99c8b153ea32d68"
+    },
+    "execution_event": {
+      "file": "execution_event.json",
+      "digest": "sha256:f85d1b797361e21e98795497ec63c40408880aa8035535a4e63bef96676feba3"
     },
     "finality_assertion": {
       "file": "finality_assertion.json",

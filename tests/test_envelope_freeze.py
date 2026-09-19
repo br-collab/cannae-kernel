@@ -25,7 +25,12 @@ import json
 import pytest
 from pydantic import BaseModel
 
-from cannae_kernel.envelopes import APPROVED_INTENT_VERSION, ApprovedIntentEnvelope
+from cannae_kernel.envelopes import (
+    APPROVED_INTENT_VERSION,
+    EXECUTION_EVENT_VERSION,
+    ApprovedIntentEnvelope,
+    ExecutionEvent,
+)
 
 #: version -> shape digest. One row per frozen contract version. Rows are added,
 #: never edited: an edited row is the change this file exists to catch.
@@ -33,10 +38,14 @@ SHAPES: dict[str, str] = {
     "cannae.approved_intent/1.0": (
         "76931c93a11cd7e0721a7a556e1098048e71267338b863687830ad2db08fa775"
     ),
+    "cannae.execution_event/1.0": (
+        "10229a34038e0ebcfc86465b5805bc1892fdb8485ddea0a051fe34b20888bf3b"
+    ),
 }
 
 FROZEN: list[tuple[str, type[BaseModel]]] = [
     (APPROVED_INTENT_VERSION, ApprovedIntentEnvelope),
+    (EXECUTION_EVENT_VERSION, ExecutionEvent),
 ]
 
 

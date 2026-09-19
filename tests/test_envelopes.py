@@ -14,16 +14,22 @@ shape — is `test_envelope_freeze.py`.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
 
 from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.canonical import digest
+from cannae_kernel.clocks import EventTimes
 from cannae_kernel.effects import ExternalEffect, OperationEffects
-from cannae_kernel.envelopes import APPROVED_INTENT_VERSION, ApprovedIntentEnvelope
-from cannae_kernel.ids import ActorId, IntentId, LifecycleId
+from cannae_kernel.envelopes import (
+    APPROVED_INTENT_VERSION,
+    EXECUTION_EVENT_VERSION,
+    ApprovedIntentEnvelope,
+    ExecutionEvent,
+)
+from cannae_kernel.ids import ActorId, EventId, IntentId, LifecycleId
 from cannae_kernel.provenance import Provenance
 from cannae_kernel.session import BusinessDate, MarketSession, SessionContext
 
@@ -31,6 +37,7 @@ INTENT = IntentId("int_01M2P20SY00000000000000001")
 LIFECYCLE = LifecycleId("lif_01M2P20SY00000000000000001")
 PAYLOAD = "sha256:" + "a" * 64
 PRIOR = "sha256:" + "b" * 64
+T0 = datetime(2026, 12, 7, 14, 30, tzinfo=UTC)
 
 
 def _session() -> SessionContext:
@@ -177,3 +184,102 @@ def test_an_unknown_field_is_refused() -> None:
     """A consumer adding a field on the wire is a contract change, not a message."""
     with pytest.raises(ValidationError):
         _envelope(urgency="HIGH")
+
+
+# =================================================================================
+# Contract 2 of 5: `ExecutionEvent` — the venue emulator to Legiones Cannenses
+# =================================================================================
+#
+# A venue fact. CL-JUM-001 §2 records that execution events are today "fabricated
+# in Aureon C2", with "delete fabrication (A4)" against them — a fabricated fill
+# and a reported one were the same shape, so nothing downstream could tell them
+# apart. These tests are mostly about making that impossible.
+
+
+def _execution(**overrides: object) -> ExecutionEvent:
+    fields: dict[str, object] = {
+        "event_id": EventId("evt_01M2P20SY00000000000000001"),
+        "lifecycle_id": LIFECYCLE,
+        "intent_id": INTENT,
+        "intent_digest": PAYLOAD,
+        "times": EventTimes(
+            event_time=T0,
+            observation_time=T0,
+            processing_time=T0,
+        ),
+        "session": _session(),
+        "provenance": Provenance.FACT_SYNTHETIC,
+        "payload_digest": PRIOR,
+    }
+    fields.update(overrides)
+    return ExecutionEvent(**fields)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC],
+    ids=lambda p: p.value,
+)
+def test_an_execution_may_be_reported_or_emulated(provenance: Provenance) -> None:
+    """Both cross this boundary. R1 decides separately what satisfies a gate."""
+    assert _execution(provenance=provenance).provenance is provenance
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [p for p in Provenance if p not in (Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC)],
+    ids=lambda p: p.value,
+)
+def test_an_execution_is_something_that_happened(provenance: Provenance) -> None:
+    """A forecast of a fill is not a fill.
+
+    Without this the model's expected execution and the venue's report are the
+    same type, and the only thing keeping them apart is that nobody has yet made
+    the mistake.
+    """
+    with pytest.raises(ValidationError, match="something that happened"):
+        _execution(provenance=provenance)
+
+
+def test_an_emulated_fill_is_distinguishable_from_a_reported_one() -> None:
+    """The fabrication defect (A4), made structurally impossible.
+
+    The two differ in the serialized bytes, so a consumer that never asks the
+    question still cannot round-trip one as the other.
+    """
+    emulated = _execution(provenance=Provenance.FACT_SYNTHETIC)
+    reported = _execution(provenance=Provenance.FACT_EXTERNAL)
+    assert emulated != reported
+    assert digest(emulated) != digest(reported)
+    assert "FACT_SYNTHETIC" in emulated.model_dump_json()
+
+
+def test_provenance_is_required_rather_than_defaulted() -> None:
+    """A default would decide the question for whoever forgot to answer it."""
+    assert ExecutionEvent.model_fields["provenance"].is_required()
+
+
+def test_an_execution_names_both_the_intent_and_the_revision() -> None:
+    """Different questions: which intent, and which version of it."""
+    event = _execution()
+    assert event.intent_id == INTENT
+    assert event.intent_digest == PAYLOAD
+    assert digest(event) != digest(_execution(intent_digest=PAYLOAD.replace("a", "c")))
+
+
+def test_the_four_clocks_keep_their_ordering() -> None:
+    """EventTimes already enforces it; this asserts the envelope does not bypass it."""
+    with pytest.raises(ValidationError):
+        _execution(
+            times=EventTimes(
+                event_time=T0,
+                observation_time=T0 - timedelta(seconds=1),
+                processing_time=T0,
+            )
+        )
+
+
+def test_the_execution_event_round_trips() -> None:
+    event = _execution()
+    assert ExecutionEvent.model_validate_json(event.model_dump_json()) == event
+    assert event.schema_version == EXECUTION_EVENT_VERSION

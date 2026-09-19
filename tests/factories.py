@@ -21,7 +21,7 @@ from cannae_kernel.authority import AuthorityRecord
 from cannae_kernel.clocks import EventTimes
 from cannae_kernel.domains import Domain
 from cannae_kernel.effects import ExternalEffect, OperationEffects
-from cannae_kernel.envelopes import ApprovedIntentEnvelope
+from cannae_kernel.envelopes import ApprovedIntentEnvelope, ExecutionEvent
 from cannae_kernel.events import EventEnvelope, seal
 from cannae_kernel.finality import (
     ConditionalityStatus,
@@ -288,6 +288,20 @@ def approved_intent_envelope() -> ApprovedIntentEnvelope:
     )
 
 
+def execution_event() -> ExecutionEvent:
+    """Contract 2 of 5. An emulated fill, labelled as one."""
+    return ExecutionEvent(
+        event_id=EventId("evt_" + ulid(7)),
+        lifecycle_id=LifecycleId("lif_01M2P20SY00000000000000001"),
+        intent_id=IntentId("int_01M2P20SY00000000000000001"),
+        intent_digest="sha256:" + "a" * 64,
+        times=times(),
+        session=session_context(),
+        provenance=Provenance.FACT_SYNTHETIC,
+        payload_digest="sha256:" + "b" * 64,
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -299,6 +313,7 @@ def golden_instances() -> dict[str, BaseModel]:
         "chain_issue": chain_issue(),
         "chain_report": chain_report(),
         "event_envelope": envelope(0, prior=None),
+        "execution_event": execution_event(),
         "event_times": replace(times(), decision_time=T0 + timedelta(seconds=1)),
         "finality_assertion": finality_assertion(),
         "halt_context": halt_context(),
