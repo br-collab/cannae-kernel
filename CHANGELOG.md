@@ -2,6 +2,29 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.6.0 — 19 Sep 2026
+
+Wave 3, `W3-contract-freeze.md`, the first of the five contracts. Additive: the seventeen existing golden vectors are byte-identical.
+
+### New module `envelopes` — `ApprovedIntentEnvelope`, frozen at `cannae.approved_intent/1.0`
+
+Aureon → Legiones Cannenses. It carries identity (`envelope_id`, `lifecycle_id`), lineage (`revision`, `prior_digest`), the session (R3), the approver, the provenance (R1), the external effects (R4), and a **`payload_digest`**.
+
+**It is a skeleton, and that is a decision.** `aureon.contracts.approved_intent.ApprovedIntentEnvelope` already exists with four live consumers, and its `IntentTerms` validates `asset_class` through a quantity model. This repository's hard rule is that a type needing domain knowledge to validate does not belong here, so the terms stay in aureon and are referenced by digest. JUM-D-01 already says `ObligationAcceptanceRecord` "references its digest rather than copying its economics"; this applies the same reasoning upstream.
+
+Two validators, each holding something that would otherwise validate while being wrong:
+
+- **A lineage cannot have a hole in it.** Revision 1 must supersede nothing; a later revision must name the digest it supersedes. Without this, revision 4 with no `prior_digest` validates, and the hole is invisible because every field present is well-formed.
+- **An approved intent is `HUMAN_JUDGMENT`.** CAOM-001 requires explicit operator action at every approval gate, so an envelope claiming approval with `POLICY_RESULT` provenance is a gate approving itself.
+
+### New: the freeze mechanism, `tests/test_envelope_freeze.py`
+
+The order defines frozen as a version, a canonical form, a digest, a golden vector **and a test that fails if the shape changes without the version moving**. The vectors give the first three; this gives the fourth, and it is what makes the others mean anything.
+
+A golden vector pins *one instance*. A field added with a default disturbs no existing instance, and a widened type often serializes identically — both are breaking changes for anyone parsing the envelope across a boundary, and neither shows up in a vector. So the declared shape is hashed from the JSON schema and recorded per version. One test proves the mechanism catches exactly those two cases rather than trusting that it does.
+
+One new golden vector: `approved_intent_envelope`.
+
 ## 0.5.0 — 19 Sep 2026
 
 Wave 3, tasking order `W3-contract-freeze.md` § R4. Additive: no existing field, enum member or serialization rule changed, and the sixteen existing golden vectors are byte-identical.

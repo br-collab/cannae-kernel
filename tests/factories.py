@@ -21,6 +21,7 @@ from cannae_kernel.authority import AuthorityRecord
 from cannae_kernel.clocks import EventTimes
 from cannae_kernel.domains import Domain
 from cannae_kernel.effects import ExternalEffect, OperationEffects
+from cannae_kernel.envelopes import ApprovedIntentEnvelope
 from cannae_kernel.events import EventEnvelope, seal
 from cannae_kernel.finality import (
     ConditionalityStatus,
@@ -34,6 +35,7 @@ from cannae_kernel.ids import (
     CheckpointId,
     EventId,
     HaltId,
+    IntentId,
     LifecycleId,
     encode_ulid,
 )
@@ -267,11 +269,31 @@ def operation_effects() -> OperationEffects:
     )
 
 
+def approved_intent_envelope() -> ApprovedIntentEnvelope:
+    """Contract 1 of 5. The skeleton only; the terms are referenced by digest."""
+    return ApprovedIntentEnvelope(
+        envelope_id=IntentId("int_01M2P20SY00000000000000001"),
+        lifecycle_id=LifecycleId("lif_01M2P20SY00000000000000001"),
+        revision=1,
+        prior_digest=None,
+        session=session_context(),
+        approved_by=human(),
+        provenance=Provenance.HUMAN_JUDGMENT,
+        effects=OperationEffects(
+            operation="release approved intent to L.C.",
+            effects=(ExternalEffect.PUBLISHES,),
+            note="hands the approved intent to the middle layer; it leaves this process",
+        ),
+        payload_digest="sha256:" + "a" * 64,
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
         "absent": absent(),
         "actor_ref": human(),
+        "approved_intent_envelope": approved_intent_envelope(),
         "business_date": business_date(),
         "authority_record": authority_record(),
         "chain_issue": chain_issue(),
