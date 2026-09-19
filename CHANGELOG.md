@@ -2,6 +2,22 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.2.0 — 19 Sep 2026
+
+Wave 3, tasking order `W3-contract-freeze.md` § R1. Additive: no existing field, enum member or serialization rule changed, and the nine existing golden vectors are byte-identical.
+
+### New module `measurement` — a reading carries its provenance, and the consumer refuses
+
+- **`Measurement`** — `value`, `provenance`, `source`, `observed_at`. Any provenance may be carried, because a synthetic or forecast reading is allowed to cross a boundary.
+- **`Constant`** — a value with no observation behind it. It has no `observed_at` field, so it cannot be given one, and it carries the `reason` there was no observation. A value without an observation time is not a measurement; this is how it says so.
+- **`ObservedFact`** — what a gate requiring an observation accepts. A `Constant` has no path to one, and a `Measurement` is converted only if its provenance is admitted. A `FORECAST` or `RECOMMENDATION` can never become one, however widely a gate admits.
+- **`require_observation(reading, *, admitting=OBSERVED)`** — the consumer's check. `OBSERVED` is `FACT_EXTERNAL` alone; `ADMISSIBLE_WITH_DERIVATION` adds `POLICY_RESULT` for a gate that acts on a value computed from live external inputs and says so at its call site.
+- **`NotAnObservationError`**, and `Reading`, the tagged union of the two, so a serialized constant cannot be read back as a measurement.
+
+Earned by F1 (a fabricated stress constant read as PASS), Cato-FICC-MCP #2 (a gate returning PROCEED on an absent reading) and W2-ADD-03. The check lives in the type rather than in a filter above it, because a filter survives only while every caller remembers it: see `tests/test_measurement.py::test_a_new_caller_cannot_reintroduce_the_class`.
+
+Three new golden vectors: `measurement`, `measurement_constant`, `observed_fact`.
+
 ## 0.1.1 — 17 Sep 2026
 
 Packaging only. No field, enum member or canonical-serialization rule changed, and the golden vectors are byte-identical (`tests/test_golden.py` proves it).

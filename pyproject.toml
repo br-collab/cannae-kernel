@@ -1,6 +1,6 @@
 [project]
 name = "cannae-kernel"
-version = "0.1.1"
+version = "0.2.0"
 description = "Shared identifiers, canonical serialization, event envelope and governance shapes for Project Cannae Legion"
 authors = [{name = "Guillermo Ravelo"}]
 readme = "README.md"
