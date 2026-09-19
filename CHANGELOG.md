@@ -2,6 +2,29 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.4.0 — 19 Sep 2026
+
+Wave 3, tasking order `W3-contract-freeze.md` § R3. Additive, but it **extends the canonical serialization rules** — see below. The fourteen existing golden vectors are byte-identical.
+
+### New module `session` — which session, and which business date, both stated
+
+From 6 December 2026 the Securities Information Processors run 23/5: an Overnight session 9:00pm-4:00am ET, and Monday's trading day beginning Sunday at 9:00pm. Overnight Limit Up-Limit Down bands are 20% against 5% in the regular session for a Tier 1 NMS stock above $3 — the same instrument with four times the room to move and no halt.
+
+- **`MarketSession`** — `REGULAR`, `CLOSING_PERIOD`, `OVERNIGHT`. The three the order evidences; not a complete map of a trading day, deliberately (see the module docstring).
+- **`BusinessDate`** — `value`, `calendar` and `established_by`, all required. Two calendars disagree about the same instant routinely, so a date with no calendar beside it is not an answer.
+- **`SessionContext`** — what a gate is told rather than works out.
+- **`BusinessDateNotEstablishedError`** — the kernel's name for what Atreides reports as `PROCESSING_DATE_NOT_ESTABLISHED`.
+
+**There is no function anywhere in the module that takes a `datetime`,** and a test asserts that there is not. Deriving a business date from a timestamp is the error Atreides already refuses to make, and after 6 December a timestamp is not close to sufficient.
+
+### `canonical` now serializes `datetime.date`
+
+A bare `date` canonicalizes as the calendar day it is (`"2026-12-07"`). This is an extension, not a change: nothing previously serialized a `date` — it raised `CanonicalizationError` — so no existing vector moves.
+
+The branch sits **after** the `datetime` branch, because `datetime` subclasses `date`. Had it come first, every instant in every envelope would have silently lost its time and zone while the digests still agreed with each other. `tests/test_canonical.py::test_a_datetime_does_not_degrade_to_a_date` holds the ordering.
+
+Two new golden vectors: `business_date`, `session_context`.
+
 ## 0.3.0 — 19 Sep 2026
 
 Wave 3, tasking order `W3-contract-freeze.md` § R2. Additive: no existing field, enum member or serialization rule changed, and the twelve existing golden vectors are byte-identical.

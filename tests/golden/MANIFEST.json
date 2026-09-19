@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -12,6 +12,10 @@
     "authority_record": {
       "file": "authority_record.json",
       "digest": "sha256:3639e024f1e6d4a8da6566b7a09e042b1a9314c81c19680a848e0b126f5e7ced"
+    },
+    "business_date": {
+      "file": "business_date.json",
+      "digest": "sha256:5116bca85a12675b8fea199a9ddb73dccd6ea9d72f4115db114496011d0991ec"
     },
     "chain_issue": {
       "file": "chain_issue.json",
@@ -56,6 +60,10 @@
     "recorded": {
       "file": "recorded.json",
       "digest": "sha256:07afbed914cc84cbd84b5fde7e946ed49f2cdbb205f50e2bad96b70bfce9ab27"
+    },
+    "session_context": {
+      "file": "session_context.json",
+      "digest": "sha256:bf3ae89feb724393a0482528227720761600c3b5c87d80f585d235eca711193b"
     }
   }
 }
