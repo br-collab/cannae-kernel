@@ -1,6 +1,10 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "vectors": {
+    "absent": {
+      "file": "absent.json",
+      "digest": "sha256:cda3de78ae784aeb3311d2ca4540dfff7a2f483157f6555393f3dc0baaa69441"
+    },
     "actor_ref": {
       "file": "actor_ref.json",
       "digest": "sha256:0ac715a3c589eac7ac4eb96c88ceec560e3ae6d1af07a2002aca3aaeea4579e9"
@@ -48,6 +52,10 @@
     "observed_fact": {
       "file": "observed_fact.json",
       "digest": "sha256:accabfbc96315c2bfcf163218d28409ac805fdf5b3bf918f32181eac7ebfef18"
+    },
+    "recorded": {
+      "file": "recorded.json",
+      "digest": "sha256:07afbed914cc84cbd84b5fde7e946ed49f2cdbb205f50e2bad96b70bfce9ab27"
     }
   }
 }

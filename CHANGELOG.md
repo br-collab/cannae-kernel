@@ -2,6 +2,23 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.3.0 — 19 Sep 2026
+
+Wave 3, tasking order `W3-contract-freeze.md` § R2. Additive: no existing field, enum member or serialization rule changed, and the twelve existing golden vectors are byte-identical.
+
+### New module `absence` — absence is a value, with a reason, and never a pass
+
+- **`Absent`** — `kind` and `reason`. The reason is part of the record, not a comment: "no instruction was issued" is why a quorum hold persists nothing, and before this it existed nowhere.
+- **`AbsenceKind`** — `NOTHING_RECORDED` (a write could have happened and did not; settled), `NOT_YET_KNOWN` (may still arrive) and `NOT_APPLICABLE`. The order requires "nothing was written" to be distinct from null, from zero **and from "not yet known"**; a consumer treating the three alike is making a claim it has not checked.
+- **`Recorded[T]`** — a value that was recorded, **including a recorded `None` or zero**. A recorded absence of quantity is not the same as no record of quantity, which is why this is a separate type rather than an optional field.
+- **`Recorded[T] | Absent`** is the shape that crosses a boundary. No explicit discriminator: the differing `state` literals plus the kernel base model's `extra="forbid"` already refuse an absence relabelled as a record, and the test proves it rather than assuming it.
+- **`disposition_of`** — `INDETERMINATE` for any absence, whatever kind. `require_recorded` raises `MissingValueError` carrying the reason.
+- **`Absent.label`** — what a surface renders. Never empty, and always leading with the negation, so a truncating surface cannot show a first word that reads as a result. #36 is why this belongs in the contract: a contract that can express absence and a surface that cannot display it is still a surface that lies.
+
+Earned by W2B7-V-01 (a DSOR record claimed on a quorum hold), the empty ledger segment, #36 (the `na` state rendering brighter than "not reached") and eight silent read-path catches.
+
+Two new golden vectors: `absent`, `recorded`.
+
 ## 0.2.0 — 19 Sep 2026
 
 Wave 3, tasking order `W3-contract-freeze.md` § R1. Additive: no existing field, enum member or serialization rule changed, and the nine existing golden vectors are byte-identical.

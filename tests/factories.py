@@ -14,6 +14,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
+from cannae_kernel.absence import AbsenceKind, Absent, Recorded
 from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.authority import AuthorityRecord
 from cannae_kernel.clocks import EventTimes
@@ -211,6 +212,16 @@ def checkpoint_of(envelopes: list[EventEnvelope[Any]]) -> JournalCheckpoint:
     )
 
 
+def absent() -> Absent:
+    """The quorum hold: nothing was written, because no instruction was issued."""
+    return Absent(kind=AbsenceKind.NOTHING_RECORDED, reason="no instruction was issued")
+
+
+def recorded() -> Recorded[str]:
+    """The other side of the same union: a value that was recorded."""
+    return Recorded[str](value="dsor_01M2P20SY00000000000000001")
+
+
 def measurement() -> Measurement:
     """An external reading, with the publisher and the time it was seen."""
     return Measurement(
@@ -233,6 +244,7 @@ def constant() -> Constant:
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
+        "absent": absent(),
         "actor_ref": human(),
         "authority_record": authority_record(),
         "chain_issue": chain_issue(),
@@ -245,4 +257,5 @@ def golden_instances() -> dict[str, BaseModel]:
         "measurement": measurement(),
         "measurement_constant": constant(),
         "observed_fact": measurement().observed(),
+        "recorded": recorded(),
     }
