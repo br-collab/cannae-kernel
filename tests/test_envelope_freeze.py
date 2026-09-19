@@ -29,9 +29,11 @@ from cannae_kernel.envelopes import (
     APPROVED_INTENT_VERSION,
     CLEARING_TRANSFORMATION_VERSION,
     EXECUTION_EVENT_VERSION,
+    SETTLEMENT_OBLIGATION_VERSION,
     ApprovedIntentEnvelope,
     ClearingTransformation,
     ExecutionEvent,
+    SettlementObligationEnvelope,
 )
 
 #: version -> shape digest. One row per frozen contract version. Rows are added,
@@ -46,12 +48,16 @@ SHAPES: dict[str, str] = {
     "cannae.clearing_transformation/1.0": (
         "b2c5550b1b4e6ba978c6c8058a28a53d83c9a1d1dd702e06d342e2466a826592"
     ),
+    "cannae.settlement_obligation/1.0": (
+        "5e6370b34bef94545b1450b71e8ec65f9527a41517f350ad463b56fb666043bc"
+    ),
 }
 
 FROZEN: list[tuple[str, type[BaseModel]]] = [
     (APPROVED_INTENT_VERSION, ApprovedIntentEnvelope),
     (EXECUTION_EVENT_VERSION, ExecutionEvent),
     (CLEARING_TRANSFORMATION_VERSION, ClearingTransformation),
+    (SETTLEMENT_OBLIGATION_VERSION, SettlementObligationEnvelope),
 ]
 
 

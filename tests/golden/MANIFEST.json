@@ -1,5 +1,5 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -80,6 +80,10 @@
     "session_context": {
       "file": "session_context.json",
       "digest": "sha256:bf3ae89feb724393a0482528227720761600c3b5c87d80f585d235eca711193b"
+    },
+    "settlement_obligation": {
+      "file": "settlement_obligation.json",
+      "digest": "sha256:31e0553296b7987f273b863fc13a0f0d49b0a9206a72451cd5a8e53179076d21"
     }
   }
 }

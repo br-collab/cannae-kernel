@@ -25,6 +25,7 @@ from cannae_kernel.envelopes import (
     ApprovedIntentEnvelope,
     ClearingTransformation,
     ExecutionEvent,
+    SettlementObligationEnvelope,
 )
 from cannae_kernel.events import EventEnvelope, seal
 from cannae_kernel.finality import (
@@ -41,6 +42,7 @@ from cannae_kernel.ids import (
     HaltId,
     IntentId,
     LifecycleId,
+    ObligationId,
     encode_ulid,
 )
 from cannae_kernel.journal import (
@@ -317,6 +319,18 @@ def clearing_transformation() -> ClearingTransformation:
     )
 
 
+def settlement_obligation() -> SettlementObligationEnvelope:
+    """Contract 4 of 5. Formed by L.C., handed to Atreides, on a named calendar."""
+    return SettlementObligationEnvelope(
+        obligation_id=ObligationId("obl_01M2P20SY00000000000000001"),
+        lifecycle_id=LifecycleId("lif_01M2P20SY00000000000000001"),
+        transformation_digest="sha256:" + "c" * 64,
+        session=session_context(),
+        provenance=Provenance.POLICY_RESULT,
+        payload_digest="sha256:" + "d" * 64,
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -340,4 +354,5 @@ def golden_instances() -> dict[str, BaseModel]:
         "operation_effects": operation_effects(),
         "recorded": recorded(),
         "session_context": session_context(),
+        "settlement_obligation": settlement_obligation(),
     }

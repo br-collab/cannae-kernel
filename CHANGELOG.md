@@ -2,6 +2,20 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.9.0 — 19 Sep 2026
+
+Wave 3, the fourth of the five contracts. Additive: the twenty existing golden vectors are byte-identical.
+
+### `SettlementObligationEnvelope`, frozen at `cannae.settlement_obligation/1.0`
+
+Legiones Cannenses to Atreides — the handover where the domain split becomes real. L.C. stops at the formed obligation (JUM-D-02); Atreides builds the instructions; neither restates the other's fields.
+
+`transformation_digest` names what formed the obligation, because one that cannot is one nobody can reconcile. `provenance` must be `POLICY_RESULT`: an obligation is formed by applying clearing rules, not observed.
+
+**This is the envelope R3 was written for.** The settlement business date is stated here, by the domain that formed the obligation, on a named calendar — and never re-derived downstream, which is exactly the `PROCESSING_DATE_NOT_ESTABLISHED` break Atreides already refuses to make. Fedwire Funds runs 9:00pm ET the preceding calendar day to 7:00pm ET, Monday to Friday, excluding Reserve Bank holidays, so a Fedwire business date and a market trading day for the same instant are different answers. A test asserts the two produce different digests.
+
+One new golden vector: `settlement_obligation`.
+
 ## 0.8.0 — 19 Sep 2026
 
 Wave 3, the third of the five contracts. Additive: the nineteen existing golden vectors are byte-identical.

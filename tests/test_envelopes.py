@@ -27,11 +27,13 @@ from cannae_kernel.envelopes import (
     APPROVED_INTENT_VERSION,
     CLEARING_TRANSFORMATION_VERSION,
     EXECUTION_EVENT_VERSION,
+    SETTLEMENT_OBLIGATION_VERSION,
     ApprovedIntentEnvelope,
     ClearingTransformation,
     ExecutionEvent,
+    SettlementObligationEnvelope,
 )
-from cannae_kernel.ids import ActorId, EventId, IntentId, LifecycleId
+from cannae_kernel.ids import ActorId, EventId, IntentId, LifecycleId, ObligationId
 from cannae_kernel.provenance import Provenance
 from cannae_kernel.session import BusinessDate, MarketSession, SessionContext
 
@@ -366,3 +368,93 @@ def test_the_transformation_round_trips() -> None:
         == transformation
     )
     assert transformation.schema_version == CLEARING_TRANSFORMATION_VERSION
+
+
+# =================================================================================
+# Contract 4 of 5: `SettlementObligationEnvelope` — L.C. to Atreides
+# =================================================================================
+#
+# The handover where the domain split becomes real. L.C. stops at the formed
+# obligation (JUM-D-02); Atreides builds the instructions. R3 names this envelope
+# as one of the two that must carry the session and the settlement business date.
+
+OBLIGATION = ObligationId("obl_01M2P20SY00000000000000001")
+
+
+def _obligation(**overrides: object) -> SettlementObligationEnvelope:
+    fields: dict[str, object] = {
+        "obligation_id": OBLIGATION,
+        "lifecycle_id": LIFECYCLE,
+        "transformation_digest": D1,
+        "session": _session(),
+        "provenance": Provenance.POLICY_RESULT,
+        "payload_digest": PAYLOAD,
+    }
+    fields.update(overrides)
+    return SettlementObligationEnvelope(**fields)  # type: ignore[arg-type]
+
+
+def test_an_obligation_names_the_transformation_that_formed_it() -> None:
+    """One that cannot is one nobody can reconcile."""
+    assert _obligation().transformation_digest == D1
+    with pytest.raises(ValidationError):
+        _obligation(transformation_digest="")
+
+
+def test_the_settlement_business_date_is_stated_by_the_forming_domain() -> None:
+    """R3, and the reason R3 exists.
+
+    Atreides already refuses to derive one: PROCESSING_DATE_NOT_ESTABLISHED. The
+    envelope carries it so Atreides never has to.
+    """
+    envelope = _obligation()
+    assert envelope.session.business_date.calendar == "Fedwire Funds"
+    assert envelope.session.business_date.established_by
+    with pytest.raises(ValidationError):
+        _obligation(session=None)
+
+
+def test_two_calendars_give_two_obligations() -> None:
+    """A Fedwire business date and a market trading day are not interchangeable."""
+    fedwire = _obligation()
+    market = _obligation(
+        session=SessionContext(
+            session=MarketSession.REGULAR,
+            business_date=BusinessDate(
+                value=date(2026, 12, 7),
+                calendar="NMS trading day",
+                established_by="the session-closure message",
+            ),
+        )
+    )
+    assert digest(fedwire) != digest(market)
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [p for p in Provenance if p is not Provenance.POLICY_RESULT],
+    ids=lambda p: p.value,
+)
+def test_an_obligation_is_formed_by_rules_not_observed(provenance: Provenance) -> None:
+    with pytest.raises(ValidationError, match="applying clearing rules"):
+        _obligation(provenance=provenance)
+
+
+def test_the_obligation_carries_no_economics() -> None:
+    """Atreides validates the CUSIP and the amounts; the kernel cannot, so it does not hold them."""
+    fields = set(SettlementObligationEnvelope.model_fields)
+    for economic in (
+        "cusip",
+        "net_delivery_quantity",
+        "net_payment_amount",
+        "counterparty_id",
+        "rail",
+        "amount",
+    ):
+        assert economic not in fields, f"{economic} needs domain knowledge to validate"
+
+
+def test_the_obligation_round_trips() -> None:
+    envelope = _obligation()
+    assert SettlementObligationEnvelope.model_validate_json(envelope.model_dump_json()) == envelope
+    assert envelope.schema_version == SETTLEMENT_OBLIGATION_VERSION

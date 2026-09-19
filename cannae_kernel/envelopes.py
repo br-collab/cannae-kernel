@@ -49,7 +49,7 @@ from cannae_kernel._model import KernelModel, NonEmptyStr, PositiveSafeInt
 from cannae_kernel.actor import ActorRef
 from cannae_kernel.clocks import EventTimes
 from cannae_kernel.effects import OperationEffects
-from cannae_kernel.ids import EventId, IntentId, LifecycleId
+from cannae_kernel.ids import EventId, IntentId, LifecycleId, ObligationId
 from cannae_kernel.provenance import Provenance
 from cannae_kernel.session import SessionContext
 
@@ -58,10 +58,12 @@ __all__ = [
     "CLEARING_TRANSFORMATION_VERSION",
     "EXECUTION_EVENT_VERSION",
     "OBSERVED_EXECUTION",
+    "SETTLEMENT_OBLIGATION_VERSION",
     "ApprovedIntentEnvelope",
     "ClearingTransformation",
     "Digest",
     "ExecutionEvent",
+    "SettlementObligationEnvelope",
 ]
 
 #: `sha256:<64 hex>`, as `canonical.digest` produces it.
@@ -70,6 +72,7 @@ Digest = NonEmptyStr
 APPROVED_INTENT_VERSION: Final = "cannae.approved_intent/1.0"
 EXECUTION_EVENT_VERSION: Final = "cannae.execution_event/1.0"
 CLEARING_TRANSFORMATION_VERSION: Final = "cannae.clearing_transformation/1.0"
+SETTLEMENT_OBLIGATION_VERSION: Final = "cannae.settlement_obligation/1.0"
 
 OBSERVED_EXECUTION: Final = frozenset({Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC})
 """An execution is something that happened: a venue reported it, or an emulator
@@ -282,5 +285,51 @@ class ClearingTransformation(KernelModel):
             raise ValueError(
                 f"a clearing transformation is a POLICY_RESULT, not "
                 f"{self.provenance.value}: it is computed, not observed or judged"
+            )
+        return self
+
+
+class SettlementObligationEnvelope(KernelModel):
+    """Legiones Cannenses to Atreides: an obligation formed and handed over.
+
+    The handover where the domain split becomes real. L.C. stops at the formed
+    obligation (JUM-D-02); Atreides builds the settlement instructions. Neither
+    restates the other's fields.
+
+    R3 names this envelope and the approved-intent envelope as the two that must
+    carry the session and the settlement business date, and this is the one where
+    the calendar bites hardest: Fedwire Funds runs 9:00pm Eastern the preceding
+    calendar day to 7:00pm Eastern, Monday to Friday, **excluding Reserve Bank
+    holidays**. "There is always a cash leg" is the sentence the whole domain
+    split rests on, and the calendar is part of the leg.
+    """
+
+    schema_version: Literal["cannae.settlement_obligation/1.0"] = SETTLEMENT_OBLIGATION_VERSION
+
+    obligation_id: ObligationId
+    lifecycle_id: LifecycleId
+    transformation_digest: Digest
+    """The clearing transformation that formed this obligation. An obligation
+    that cannot name what produced it is one nobody can reconcile."""
+
+    session: SessionContext
+    """R3, and the reason R3 exists. The settlement business date is **stated
+    here by the domain that formed the obligation**, on a named calendar, and is
+    never re-derived downstream from a timestamp — which is exactly the
+    ``PROCESSING_DATE_NOT_ESTABLISHED`` break Atreides already refuses to make."""
+
+    provenance: Provenance
+    payload_digest: Digest
+    """``digest`` of the obligation's economics — the CUSIP, the delivery
+    quantity, the payment amount, the counterparty. Atreides validates those;
+    the kernel cannot, so it does not hold them."""
+
+    @model_validator(mode="after")
+    def _an_obligation_is_formed_not_observed(self) -> Self:
+        """L.C. forms obligations by applying rules; it does not observe them."""
+        if self.provenance is not Provenance.POLICY_RESULT:
+            raise ValueError(
+                f"a settlement obligation is a POLICY_RESULT, not "
+                f"{self.provenance.value}: it is formed by applying clearing rules"
             )
         return self
