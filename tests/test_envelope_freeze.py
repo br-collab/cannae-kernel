@@ -27,8 +27,10 @@ from pydantic import BaseModel
 
 from cannae_kernel.envelopes import (
     APPROVED_INTENT_VERSION,
+    CLEARING_TRANSFORMATION_VERSION,
     EXECUTION_EVENT_VERSION,
     ApprovedIntentEnvelope,
+    ClearingTransformation,
     ExecutionEvent,
 )
 
@@ -41,11 +43,15 @@ SHAPES: dict[str, str] = {
     "cannae.execution_event/1.0": (
         "10229a34038e0ebcfc86465b5805bc1892fdb8485ddea0a051fe34b20888bf3b"
     ),
+    "cannae.clearing_transformation/1.0": (
+        "b2c5550b1b4e6ba978c6c8058a28a53d83c9a1d1dd702e06d342e2466a826592"
+    ),
 }
 
 FROZEN: list[tuple[str, type[BaseModel]]] = [
     (APPROVED_INTENT_VERSION, ApprovedIntentEnvelope),
     (EXECUTION_EVENT_VERSION, ExecutionEvent),
+    (CLEARING_TRANSFORMATION_VERSION, ClearingTransformation),
 ]
 
 

@@ -21,7 +21,11 @@ from cannae_kernel.authority import AuthorityRecord
 from cannae_kernel.clocks import EventTimes
 from cannae_kernel.domains import Domain
 from cannae_kernel.effects import ExternalEffect, OperationEffects
-from cannae_kernel.envelopes import ApprovedIntentEnvelope, ExecutionEvent
+from cannae_kernel.envelopes import (
+    ApprovedIntentEnvelope,
+    ClearingTransformation,
+    ExecutionEvent,
+)
 from cannae_kernel.events import EventEnvelope, seal
 from cannae_kernel.finality import (
     ConditionalityStatus,
@@ -302,6 +306,17 @@ def execution_event() -> ExecutionEvent:
     )
 
 
+def clearing_transformation() -> ClearingTransformation:
+    """Contract 3 of 5. Two executions netted under a named rule set."""
+    return ClearingTransformation(
+        lifecycle_id=LifecycleId("lif_01M2P20SY00000000000000001"),
+        input_digests=("sha256:" + "1" * 64, "sha256:" + "2" * 64),
+        output_digest="sha256:" + "c" * 64,
+        rule_set_version="ficc-gsd-net/2026.3",
+        provenance=Provenance.POLICY_RESULT,
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -310,6 +325,7 @@ def golden_instances() -> dict[str, BaseModel]:
         "approved_intent_envelope": approved_intent_envelope(),
         "business_date": business_date(),
         "authority_record": authority_record(),
+        "clearing_transformation": clearing_transformation(),
         "chain_issue": chain_issue(),
         "chain_report": chain_report(),
         "event_envelope": envelope(0, prior=None),

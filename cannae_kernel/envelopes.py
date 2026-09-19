@@ -55,9 +55,11 @@ from cannae_kernel.session import SessionContext
 
 __all__ = [
     "APPROVED_INTENT_VERSION",
+    "CLEARING_TRANSFORMATION_VERSION",
     "EXECUTION_EVENT_VERSION",
     "OBSERVED_EXECUTION",
     "ApprovedIntentEnvelope",
+    "ClearingTransformation",
     "Digest",
     "ExecutionEvent",
 ]
@@ -67,6 +69,7 @@ Digest = NonEmptyStr
 
 APPROVED_INTENT_VERSION: Final = "cannae.approved_intent/1.0"
 EXECUTION_EVENT_VERSION: Final = "cannae.execution_event/1.0"
+CLEARING_TRANSFORMATION_VERSION: Final = "cannae.clearing_transformation/1.0"
 
 OBSERVED_EXECUTION: Final = frozenset({Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC})
 """An execution is something that happened: a venue reported it, or an emulator
@@ -211,5 +214,73 @@ class ExecutionEvent(KernelModel):
             raise ValueError(
                 f"an execution event is FACT_EXTERNAL or FACT_SYNTHETIC, not "
                 f"{self.provenance.value}: an execution is something that happened"
+            )
+        return self
+
+
+class ClearingTransformation(KernelModel):
+    """Within Legiones Cannenses: what clearing did to a set of executions.
+
+    JUM-D-01 has this one "carried by reference", and that phrase is the whole
+    design. A transformation is not a new set of economics; it is a statement
+    that *these* inputs produced *that* output, deterministically, under a named
+    rule set. The economics belong to the inputs and the output, each of which
+    already has an owner.
+
+    So the envelope names what went in, what came out, and which rules were
+    applied — and carries none of the numbers itself.
+    """
+
+    schema_version: Literal["cannae.clearing_transformation/1.0"] = CLEARING_TRANSFORMATION_VERSION
+
+    lifecycle_id: LifecycleId
+    input_digests: tuple[Digest, ...]
+    """The executions this transformation consumed, by digest, in the order it
+    consumed them. Order is part of the claim: netting is not commutative once
+    rounding enters, so two orderings are two different transformations."""
+
+    output_digest: Digest
+    """What it produced. A digest, because the output's economics have their own
+    owner and restating them here would create a second one."""
+
+    rule_set_version: NonEmptyStr
+    """Which rules were applied. A deterministic result is only reproducible
+    against the rules that produced it, and those change."""
+
+    provenance: Provenance
+    """R1: a clearing transformation is a ``POLICY_RESULT`` — the output of a
+    deterministic policy. It is not an observation and not a judgment."""
+
+    @model_validator(mode="after")
+    def _a_transformation_transforms_something(self) -> Self:
+        """No inputs is not an empty transformation; it is an invented output.
+
+        This is the fabrication shape again: a well-formed record asserting a
+        result that nothing produced. An output with no inputs cannot be
+        reproduced, reviewed or disputed.
+        """
+        if not self.input_digests:
+            raise ValueError(
+                "a clearing transformation with no inputs did not transform anything: "
+                "its output was invented rather than derived"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _the_same_input_is_not_consumed_twice(self) -> Self:
+        """Double-counting an execution is a netting error that still validates."""
+        if len(set(self.input_digests)) != len(self.input_digests):
+            raise ValueError(
+                "the same execution appears twice in input_digests: an execution "
+                "cannot be cleared twice"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _a_transformation_is_a_policy_result(self) -> Self:
+        if self.provenance is not Provenance.POLICY_RESULT:
+            raise ValueError(
+                f"a clearing transformation is a POLICY_RESULT, not "
+                f"{self.provenance.value}: it is computed, not observed or judged"
             )
         return self

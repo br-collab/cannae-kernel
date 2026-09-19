@@ -2,6 +2,24 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 0.8.0 — 19 Sep 2026
+
+Wave 3, the third of the five contracts. Additive: the nineteen existing golden vectors are byte-identical.
+
+### `ClearingTransformation`, frozen at `cannae.clearing_transformation/1.0`
+
+Within Legiones Cannenses. JUM-D-01 has this one "carried by reference", and that phrase is the design: a transformation is a claim that *these* inputs produced *that* output under *these* rules, not a second copy of economics that already have an owner.
+
+`input_digests`, `output_digest`, `rule_set_version`, and `provenance`, which must be `POLICY_RESULT` — it is computed, not observed and not judged.
+
+Three validators:
+
+- **No inputs is not an empty transformation; it is an invented output.** The fabrication shape again: a well-formed record asserting a result nothing produced, which cannot be reproduced, reviewed or disputed.
+- **The same execution cannot be cleared twice.** Double-counting is a netting error that otherwise validates perfectly.
+- **Input order is part of the claim.** Netting is not commutative once rounding enters, so two orderings are two different transformations and carry two digests.
+
+One new golden vector: `clearing_transformation`.
+
 ## 0.7.0 — 19 Sep 2026
 
 Wave 3, the second of the five contracts. Additive: the eighteen existing golden vectors are byte-identical.

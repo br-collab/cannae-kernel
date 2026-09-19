@@ -25,8 +25,10 @@ from cannae_kernel.clocks import EventTimes
 from cannae_kernel.effects import ExternalEffect, OperationEffects
 from cannae_kernel.envelopes import (
     APPROVED_INTENT_VERSION,
+    CLEARING_TRANSFORMATION_VERSION,
     EXECUTION_EVENT_VERSION,
     ApprovedIntentEnvelope,
+    ClearingTransformation,
     ExecutionEvent,
 )
 from cannae_kernel.ids import ActorId, EventId, IntentId, LifecycleId
@@ -283,3 +285,84 @@ def test_the_execution_event_round_trips() -> None:
     event = _execution()
     assert ExecutionEvent.model_validate_json(event.model_dump_json()) == event
     assert event.schema_version == EXECUTION_EVENT_VERSION
+
+
+# =================================================================================
+# Contract 3 of 5: `ClearingTransformation` — within Legiones Cannenses
+# =================================================================================
+#
+# JUM-D-01 has this one "carried by reference". A transformation is a claim that
+# these inputs produced that output under these rules — not a second copy of the
+# economics, which already have an owner.
+
+D1 = "sha256:" + "1" * 64
+D2 = "sha256:" + "2" * 64
+
+
+def _transformation(**overrides: object) -> ClearingTransformation:
+    fields: dict[str, object] = {
+        "lifecycle_id": LIFECYCLE,
+        "input_digests": (D1, D2),
+        "output_digest": PAYLOAD,
+        "rule_set_version": "ficc-gsd-net/2026.3",
+        "provenance": Provenance.POLICY_RESULT,
+    }
+    fields.update(overrides)
+    return ClearingTransformation(**fields)  # type: ignore[arg-type]
+
+
+def test_a_transformation_names_what_it_consumed_and_produced() -> None:
+    transformation = _transformation()
+    assert transformation.input_digests == (D1, D2)
+    assert transformation.output_digest == PAYLOAD
+
+
+def test_a_transformation_with_no_inputs_is_an_invented_output() -> None:
+    """The fabrication shape: a well-formed record asserting an underived result."""
+    with pytest.raises(ValidationError, match="invented rather than derived"):
+        _transformation(input_digests=())
+
+
+def test_an_execution_cannot_be_cleared_twice() -> None:
+    """Double-counting is a netting error that otherwise validates."""
+    with pytest.raises(ValidationError, match="cannot be cleared twice"):
+        _transformation(input_digests=(D1, D1))
+
+
+def test_the_order_of_inputs_is_part_of_the_claim() -> None:
+    """Netting is not commutative once rounding enters, so two orders are two claims."""
+    assert digest(_transformation(input_digests=(D1, D2))) != digest(
+        _transformation(input_digests=(D2, D1))
+    )
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [p for p in Provenance if p is not Provenance.POLICY_RESULT],
+    ids=lambda p: p.value,
+)
+def test_a_transformation_is_computed_not_observed_or_judged(provenance: Provenance) -> None:
+    with pytest.raises(ValidationError, match="computed, not observed or judged"):
+        _transformation(provenance=provenance)
+
+
+def test_a_transformation_carries_no_economics() -> None:
+    """ "Carried by reference" (JUM-D-01): restating a number creates a second owner."""
+    fields = set(ClearingTransformation.model_fields)
+    for economic in ("amount", "quantity", "net_amount", "price", "currency", "cusip"):
+        assert economic not in fields, f"{economic} has an owner already; do not restate it"
+
+
+def test_the_rule_set_version_is_required() -> None:
+    """A deterministic result is only reproducible against the rules that made it."""
+    with pytest.raises(ValidationError):
+        _transformation(rule_set_version="")
+
+
+def test_the_transformation_round_trips() -> None:
+    transformation = _transformation()
+    assert (
+        ClearingTransformation.model_validate_json(transformation.model_dump_json())
+        == transformation
+    )
+    assert transformation.schema_version == CLEARING_TRANSFORMATION_VERSION

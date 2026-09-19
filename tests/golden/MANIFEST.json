@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -28,6 +28,10 @@
     "chain_report": {
       "file": "chain_report.json",
       "digest": "sha256:2bb39f5c256d557e1f1a1e84a9455d5346bd415613c0983ff3daef0ab6358d09"
+    },
+    "clearing_transformation": {
+      "file": "clearing_transformation.json",
+      "digest": "sha256:d9065f904eede90a7a3c3e562174f1c2fb0c71f2724500632fdbab2deb2710cb"
     },
     "event_envelope": {
       "file": "event_envelope.json",
