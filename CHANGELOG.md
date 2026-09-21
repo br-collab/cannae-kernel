@@ -2,6 +2,34 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 1.1.0 — 21 Sep 2026
+
+Phase C.0 of `W3-agent-activation-AMD2.md`: one additive contract for what the adaptive agent is allowed to say. **The five frozen envelopes are untouched and their golden vectors are byte-identical.** Four new vectors: `recommendation`, `probability_distribution`, `outcome_probability`, `liquidity_peak`.
+
+### `Recommendation`, at `cannae.recommendation/1.0`
+
+Every other contract here describes something that happened or was decided. A forecast is neither — it is the only claim in the programme *expected* to be wrong some of the time, so the type guarantees not that the number is right but that a reader can always tell how much weight it carries and when the model declined to answer.
+
+Three validators do that, and one absence.
+
+**Provenance is `FORECAST`, always.** `FACT_*`, `POLICY_RESULT`, `HUMAN_JUDGMENT` and even `RECOMMENDATION` are refused. A model's opinion relabelled as an observation is the Wave 2 defect in its most expensive form: the fabricated 0.38 that a gate read as PASS was a number with no observation behind it wearing an observation's clothes.
+
+**Abstention is a value with a reason** (R2). Every output is `Recorded[T] | Absent`. A recommendation in which everything is absent is a **complete abstention** and is valid — "I have nothing useful to say about this" is a real answer, and one an operator can act on.
+
+**A number never travels without its confidence.** Any recorded forecast field, or any ranked path, requires a recorded confidence. The kernel sets no *threshold* — what is too low to act on is domain policy and differs by rail — but the pairing is unavoidable, so a consumer always has something to apply its threshold to. Without it, a model that abstained from confidence while answering everything else would look more certain than one that answered honestly.
+
+**The type cannot express an instruction.** No field for an order, a settlement instruction, a release, a submission or an approval, and no free-form field one could be smuggled through. `tests/test_recommendation.py` proves it by trying twelve of them. That is the type-level statement of JUM-D-07: H recommends and never authorizes or submits, enforced here as well as at the agent, because a rule that lives only in the agent moves when the agent is rewritten.
+
+### Vocabulary stays with the domain
+
+`ProbabilityDistribution` carries outcome **names as strings**. The kernel could not tell `will_queue` from a typo — Atreides owns `FundingDisposition` — so it does not pretend to. What it validates is structural and needs no outside knowledge: probabilities in range, no outcome twice, and the distribution sums to one within a tolerance of 0.0001.
+
+The duplicate check matters more than it looks: a repeated outcome is how a distribution comes to sum to one while describing something incoherent, with every field individually well formed.
+
+### One defect found while writing this
+
+`Probability` was first written as `Annotated[Decimal, Field(ge=0, le=1), …]` beside `KernelDecimal`'s own core schema — which **replaces** the default, silently discarding the bound. A probability of 1.5 validated. It is now an `AfterValidator`, and the reason is recorded in the module, because `_model.py` already warns about exactly this for `SafeInt` (*"a dropped bound fails silently"*) and the warning did not stop it happening.
+
 ## 1.0.0 — 19 Sep 2026
 
 Wave 3, the fifth and last of the five contracts. **All five cross-domain envelopes are now frozen at 1.0**, which is what 1.0.0 marks. Additive: the twenty-one existing golden vectors are byte-identical.
