@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "vectors": {
     "absent": {
       "file": "absent.json",
@@ -57,6 +57,10 @@
       "file": "journal_checkpoint.json",
       "digest": "sha256:b1e29768c0b49da90ae90bcdbf7c26308e356071da20acec742202c7ef342828"
     },
+    "liquidity_peak": {
+      "file": "liquidity_peak.json",
+      "digest": "sha256:1a74c4d345e3e2607bdd17d1902c73b79cd21a7ddc43e516b866e1081c63a889"
+    },
     "measurement": {
       "file": "measurement.json",
       "digest": "sha256:53a3315e038283312e7414eabd0e9894cf479cbf231af0d32973e8aabe630986"
@@ -76,6 +80,18 @@
     "operation_effects": {
       "file": "operation_effects.json",
       "digest": "sha256:c039082d6fb1be3c92be0d525c974a1aaf3704319e358e66b463f6c1bf98226b"
+    },
+    "outcome_probability": {
+      "file": "outcome_probability.json",
+      "digest": "sha256:cbcbc9a446ac9ec13a111edc2a693d0cb0bfb041bc16c33f6cc7dd2c201adffd"
+    },
+    "probability_distribution": {
+      "file": "probability_distribution.json",
+      "digest": "sha256:825e8ad02564a3fb2e8235ca74cc2f3caa9ddd95d8dfea0185583fded4b4ac16"
+    },
+    "recommendation": {
+      "file": "recommendation.json",
+      "digest": "sha256:cc589c0e0edaf65f9ebfdffea71e121a5897738b919f182b6dd885d9a246ee59"
     },
     "recorded": {
       "file": "recorded.json",

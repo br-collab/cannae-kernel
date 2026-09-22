@@ -56,6 +56,12 @@ from cannae_kernel.journal import (
 )
 from cannae_kernel.measurement import Constant, Measurement
 from cannae_kernel.provenance import Provenance
+from cannae_kernel.recommendation import (
+    LiquidityPeak,
+    OutcomeProbability,
+    ProbabilityDistribution,
+    Recommendation,
+)
 from cannae_kernel.session import BusinessDate, MarketSession, SessionContext
 
 T0 = datetime(2026, 9, 16, 21, 30, tzinfo=UTC)
@@ -348,6 +354,60 @@ def obligation_acceptance() -> ObligationAcceptanceRecord:
     )
 
 
+def outcome_distribution() -> ProbabilityDistribution:
+    return ProbabilityDistribution(
+        outcomes=(
+            OutcomeProbability(outcome="will_queue", probability=Decimal("0.70")),
+            OutcomeProbability(outcome="funded", probability=Decimal("0.25")),
+            OutcomeProbability(outcome="will_fail", probability=Decimal("0.05")),
+        )
+    )
+
+
+def liquidity_peak() -> LiquidityPeak:
+    return LiquidityPeak(
+        amount=Decimal("750000.00"),
+        currency="USD",
+        interval_start=T0,
+        interval_end=T0 + timedelta(seconds=5400),
+    )
+
+
+def recommendation() -> Recommendation:
+    """A partial answer: the shape Phase C most often produces.
+
+    Deliberately not a full answer and not a full abstention. Two fields are
+    recorded, three are absent with reasons, and the confidence is present as
+    the validator requires - which is the mixture a golden vector should pin.
+    """
+    return Recommendation(
+        recommendation_id="REC-01M2P20SY0000000000000001",
+        lifecycle_id=LifecycleId("lif_01M2P20SY00000000000000001"),
+        issued_at=T0,
+        provenance=Provenance.FORECAST,
+        c2_handoff=Absent(
+            kind=AbsenceKind.NOTHING_RECORDED, reason="operator-direct under CAOM-001"
+        ),
+        model_ref="condition-A/deterministic-baseline/1.0",
+        funding_distribution=Recorded[ProbabilityDistribution](value=outcome_distribution()),
+        expected_queue_seconds=Recorded[int](value=5400),
+        window_miss_probability=Absent(
+            kind=AbsenceKind.NOT_YET_KNOWN,
+            reason="the window model is condition B; the baseline does not estimate it",
+        ),
+        peak_liquidity=Absent(
+            kind=AbsenceKind.NOT_YET_KNOWN,
+            reason="the baseline projects a single obligation, not an intraday profile",
+        ),
+        regime=Absent(
+            kind=AbsenceKind.NOT_APPLICABLE,
+            reason="regime classification requires a time series the baseline does not read",
+        ),
+        ranked_paths=("fedwire", "chips"),
+        confidence=Recorded[Decimal](value=Decimal("0.82")),
+    )
+
+
 def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
@@ -370,6 +430,10 @@ def golden_instances() -> dict[str, BaseModel]:
         "obligation_acceptance": obligation_acceptance(),
         "observed_fact": measurement().observed(),
         "operation_effects": operation_effects(),
+        "liquidity_peak": liquidity_peak(),
+        "outcome_probability": outcome_distribution().outcomes[0],
+        "probability_distribution": outcome_distribution(),
+        "recommendation": recommendation(),
         "recorded": recorded(),
         "session_context": session_context(),
         "settlement_obligation": settlement_obligation(),
