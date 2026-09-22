@@ -14,7 +14,27 @@ The shared kernel of Project Cannae Legion. It is one small package that Aureon 
 
 ## Status
 
-Version `0.1.0`, untagged. Built in Wave 1 of the joint upgrade map (CL-JUM-001). The three domain repositories adopt it in Waves 2 and 4.
+Package version `1.1.0`; the current repository release is tagged `v1.1.1`, a
+formatting-only release with the same contract. The kernel is consumed by Aureon,
+Legiones Cannenses and Atreides.
+
+## Public API
+
+The supported API is currently **module-local**: consumers import from the modules
+listed below, and only names declared in that module's `__all__` are public. For
+example:
+
+```python
+from cannae_kernel.envelopes import ApprovedIntentEnvelope
+from cannae_kernel.halt import HaltContext, gate_under_halt
+from cannae_kernel.ids import LifecycleId, new_lifecycle_id
+```
+
+`cannae_kernel` itself exports only `__version__`; it is not yet an aggregate
+facade. `cannae_kernel._model`, names beginning with `_`, tests, golden fixtures
+and tools are implementation details. Downstream repositories must not import
+them. This boundary documents the surface that exists today; consolidating it
+behind one package-level API is a separate, deliberately breaking refactor.
 
 ## Modules
 
@@ -24,7 +44,7 @@ Version `0.1.0`, untagged. Built in Wave 1 of the joint upgrade map (CL-JUM-001)
 | `canonical` | `canonical_bytes(model)` gives deterministic JSON (JavaScript Object Notation) bytes. `digest(model)` gives `sha256:<hex>`. |
 | `provenance` | `Provenance`: `FACT_EXTERNAL`, `FACT_SYNTHETIC`, `FORECAST`, `RECOMMENDATION`, `HUMAN_JUDGMENT`, `POLICY_RESULT`. |
 | `disposition` | `Disposition`: `PASS`, `HOLD`, `BLOCK`, `INDETERMINATE`. `coerce_disposition` accepts exact values only; anything else becomes `INDETERMINATE`, never `PASS`. |
-| `absence` | `Absent` (kind and reason), `Recorded[T]`, ; `Recorded[T] | Absent` is the shape that crosses a boundary. `AbsenceKind` separates `NOTHING_RECORDED` (settled) from `NOT_YET_KNOWN` (in flight) and `NOT_APPLICABLE`. Any absence disposes to `INDETERMINATE`, never `PASS`. `Absent.label` is what a surface shows: never empty, always leading with the negation. |
+| `absence` | `Absent` (kind and reason), `Recorded[T]`; `Recorded[T] | Absent` is the shape that crosses a boundary. `AbsenceKind` separates `NOTHING_RECORDED` (settled) from `NOT_YET_KNOWN` (in flight) and `NOT_APPLICABLE`. Any absence disposes to `INDETERMINATE`, never `PASS`. `Absent.label` is what a surface shows: never empty, always leading with the negation. |
 | `measurement` | `Measurement` (value, provenance, source, `observed_at`), `Constant` (a value with no observation, and the reason there is none) and `ObservedFact`, which is what a gate that requires an observation accepts. `require_observation` is the consumer's refusal; a gate widens what it admits explicitly, at its own call site. A constant has no path to an `ObservedFact`. |
 | `domains` | `Domain`: `AUREON`, `LC`, `ATREIDES`, `C2`, `EMULATOR`. |
 | `clocks` | `EventTimes`: event, observation, processing and optional decision time, all UTC, in non-decreasing order. |
@@ -32,6 +52,7 @@ Version `0.1.0`, untagged. Built in Wave 1 of the joint upgrade map (CL-JUM-001)
 | `authority` | `AuthorityRecord`. Only an authenticated `HUMAN` or `DETERMINISTIC_SERVICE` may authorize. |
 | `halt` | `HaltContext` and `gate_under_halt(ctx, domain)`, which returns `BLOCK` for an active in-scope halt and `PASS` otherwise. Any authenticated actor may declare a halt; only an authenticated human may clear one. |
 | `finality` | `FinalityType` and `FinalityAssertion`. A forecast or recommendation must carry a confidence. A fact or policy result must not; a human judgment may. A fact cannot be observed before it takes effect. |
+| `recommendation` | `Recommendation`, its version constant, probability-distribution types and liquidity peaks. Recommendations are typed advice and never authority. |
 | `envelopes` | The frozen cross-domain contracts. `ApprovedIntentEnvelope` (Aureon → L.C.) `ExecutionEvent` (venue emulator → L.C.) and `ClearingTransformation` (within L.C., carried by reference) and `SettlementObligationEnvelope` (L.C. → Atreides) and `ObligationAcceptanceRecord` (Atreides out) are **all five**, each frozen at 1.0. Each carries identity, lineage, session and a **`payload_digest`** — the domain payload stays with the domain that can validate it, per JUM-D-01. `tests/test_envelope_freeze.py` fails if a shape changes without its version moving. |
 | `effects` | `ExternalEffect` (`SENDS`, `PAYS`, `SUBMITS`, `PUBLISHES`, `WRITES_FOREIGN_STORE`, `CONSUMES_CREDENTIALED_QUOTA`) and `OperationEffects`. The question is "is anything irreversible outside this process", not "does application state change". No default: an operation nobody has classified cannot be constructed. |
 | `session` | `MarketSession` (`REGULAR`, `CLOSING_PERIOD`, `OVERNIGHT`), `BusinessDate` (the date, the calendar that fixed it, and what established it) and `SessionContext`. There is deliberately **no** way to derive either from a timestamp: from 6 Dec 2026 Monday's trading day begins Sunday 9:00pm ET, so an instant establishes neither. |
