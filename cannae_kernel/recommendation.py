@@ -103,6 +103,7 @@ __all__ = [
 
 RECOMMENDATION_VERSION: Final = "cannae.recommendation/1.0"
 
+
 def _in_the_unit_interval(value: Decimal) -> Decimal:
     """Bound a probability, as a validator rather than a ``Field`` constraint.
 

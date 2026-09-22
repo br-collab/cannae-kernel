@@ -113,8 +113,18 @@ class TestTheTypeCannotExpressAnInstruction:
     def test_no_declared_field_could_carry_one(self) -> None:
         """The field list, as a second check on the construction test above."""
         forbidden = {
-            "instruction", "order", "release", "submit", "submission", "approve",
-            "approval", "execute", "authorize", "payment", "action", "command",
+            "instruction",
+            "order",
+            "release",
+            "submit",
+            "submission",
+            "approve",
+            "approval",
+            "execute",
+            "authorize",
+            "payment",
+            "action",
+            "command",
         }
         assert set(Recommendation.model_fields).isdisjoint(forbidden)
 
@@ -128,7 +138,7 @@ class TestTheTypeCannotExpressAnInstruction:
 
 class TestAbstentionIsAValueWithAReason:
     def test_a_complete_abstention_is_valid(self) -> None:
-        """"I have nothing useful to say" is a real answer, and the type lets a
+        """ "I have nothing useful to say" is a real answer, and the type lets a
         model give it."""
         rec = recommendation(
             funding_distribution=absent("insufficient history for this counterparty"),
@@ -238,9 +248,7 @@ class TestTheDistributionIsWellFormed:
 class TestTheLiquidityPeakCarriesItsWindow:
     def test_a_peak_needs_an_interval_that_is_one(self) -> None:
         with pytest.raises(ValidationError, match="end after it starts"):
-            LiquidityPeak(
-                amount=Decimal("1"), currency="USD", interval_start=T0, interval_end=T0
-            )
+            LiquidityPeak(amount=Decimal("1"), currency="USD", interval_start=T0, interval_end=T0)
 
     def test_a_reversed_interval_is_refused(self) -> None:
         with pytest.raises(ValidationError, match="end after it starts"):
