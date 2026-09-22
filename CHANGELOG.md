@@ -2,6 +2,10 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 1.1.1 — 22 Sep 2026
+
+Formatting only; v1.1.0 is functionally identical.
+
 ## 1.1.0 — 21 Sep 2026
 
 Phase C.0 of `W3-agent-activation-AMD2.md`: one additive contract for what the adaptive agent is allowed to say. **The five frozen envelopes are untouched and their golden vectors are byte-identical.** Four new vectors: `recommendation`, `probability_distribution`, `outcome_probability`, `liquidity_peak`.

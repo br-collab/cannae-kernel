@@ -46,6 +46,9 @@ cross-language contract and are never edited by hand.
 
 Continuous integration runs these on every pull request, whatever branch it targets. Read the **annotations** as well as the pass or fail: a warning sits happily on a green run.
 
+**Release tags are cut only from commits whose continuous integration is green.** Confirm every
+job has passed and read its annotations before creating the tag.
+
 ## What is out of scope
 
 Feature requests that would make this move money, submit to a rail, or act without a human. The design refuses those deliberately, and a contribution that adds one will be declined however well it is written.
