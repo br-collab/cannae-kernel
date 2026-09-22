@@ -1,5 +1,13 @@
 # cannae-kernel
 
+> **Claim label: research.**
+> This repository is research code. It is not audited, not production-qualified, and
+> has never been used to move real money. Every surface that could reach a payment
+> rail refuses to by construction. The four labels this programme uses are *research*,
+> *experimental*, *validated* and *production-qualified*; all five repositories are at
+> the first, and this label changes only when evidence changes it.
+
+
 The shared kernel of Project Cannae Legion. It is one small package that Aureon (pre-trade intent), Legiones Cannenses (L.C., the synthetic middle layer) and Atreides (post-trade settlement) all import for the shapes they must agree on.
 
 **It contains no domain logic.** There are no rail rules, no netting, no policy thresholds and no agents. The kernel reads no clock, stores nothing and makes no network calls. Its only runtime dependency is Pydantic.
