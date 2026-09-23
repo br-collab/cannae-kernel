@@ -14,9 +14,12 @@ The shared kernel of Project Cannae Legion. It is one small package that Aureon 
 
 ## Status
 
-Package version `1.1.0`; the current repository release is tagged `v1.1.1`, a
+Research package version `1.1.0`; the current repository release is tagged `v1.1.1`, a
 formatting-only release with the same contract. The kernel is consumed by Aureon,
-Legiones Cannenses and Atreides.
+Legiones Cannenses and Atreides. Its module-local public surface is documented below and is
+covered by **521 passing tests with 100% measured line coverage**. It does not implement domain
+logic, rails, netting, policy thresholds, agents, storage, network access, or an aggregate
+package-level facade.
 
 ## Public API
 
