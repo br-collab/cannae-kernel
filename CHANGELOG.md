@@ -2,6 +2,14 @@
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
 
+## 1.1.2 — 21 Oct 2026
+
+Release metadata correction and release guard only; contracts and canonical bytes are unchanged.
+Tag `v1.1.1` was published while `pyproject.toml`, `cannae_kernel.__version__`, and the
+golden-vector manifest still declared `1.1.0`. This release makes all three declarations
+match the intended `v1.1.2` tag. Continuous integration now checks the declaration against
+the tag name on every `v*` tag build so that a mismatch cannot be released again.
+
 ## 1.1.1 — 22 Sep 2026
 
 Formatting only; v1.1.0 is functionally identical.

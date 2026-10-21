@@ -9,6 +9,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   # Every pull request, whatever it targets. Filtering on `branches: [main]` meant a
   # pull request based on another branch — a stacked one, say — got no checks at all:
   # not a failure and no red mark, simply nothing to see. Found when contracts 3, 4
@@ -47,6 +48,23 @@ jobs:
 
       - name: mypy (strict)
         run: mypy cannae_kernel tests tools
+
+      - name: release tag matches declared version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          declared = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          expected = f"v{declared}"
+          actual = os.environ["RELEASE_TAG"]
+          if actual != expected:
+              raise SystemExit(f"release tag {actual!r} does not match declared version {expected!r}")
+          PY
 
       # Coverage gate (95%) is set in pyproject.toml.
       - name: pytest
