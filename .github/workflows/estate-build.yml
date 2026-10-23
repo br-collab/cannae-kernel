@@ -42,7 +42,7 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/pip install -r aureon/requirements.txt
-          .venv/bin/pip install pytest pytest-cov hypothesis
+          .venv/bin/pip install pytest pytest-cov hypothesis PyYAML
           # Aureon's immutable release pins supply the shared dependency graph.
           # Install the checked-out packages last, without asking pip to resolve
           # their equivalent direct-URL kernel requirements as different packages.
