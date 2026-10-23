@@ -41,8 +41,12 @@ jobs:
       - name: Install all four Python packages together
         run: |
           python -m venv .venv
-          .venv/bin/pip install -e ./cannae-kernel -e './Project-Atreides[dev]' -e './Legiones-Cannenses[dev]'
           .venv/bin/pip install -r aureon/requirements.txt
+          .venv/bin/pip install pytest pytest-cov hypothesis PyYAML
+          # Aureon's immutable release pins supply the shared dependency graph.
+          # Install the checked-out packages last, without asking pip to resolve
+          # their equivalent direct-URL kernel requirements as different packages.
+          .venv/bin/pip install --no-deps -e ./cannae-kernel -e ./Project-Atreides -e ./Legiones-Cannenses
       - name: Import the Aureon server
         working-directory: aureon
         env:
@@ -50,7 +54,7 @@ jobs:
         run: ../.venv/bin/python -c 'import server'
       - name: Run every Python suite
         run: |
-          .venv/bin/pytest -q cannae-kernel/tests
-          .venv/bin/pytest -q Project-Atreides/tests
-          .venv/bin/pytest -q Legiones-Cannenses/tests
-          .venv/bin/pytest -q aureon
+          (cd cannae-kernel && ../.venv/bin/pytest -q)
+          (cd Project-Atreides && ../.venv/bin/pytest -q)
+          (cd Legiones-Cannenses && ../.venv/bin/pytest -q)
+          (cd aureon && ../.venv/bin/pytest -q)
