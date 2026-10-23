@@ -54,7 +54,7 @@ jobs:
         run: ../.venv/bin/python -c 'import server'
       - name: Run every Python suite
         run: |
-          .venv/bin/pytest -q cannae-kernel/tests
-          .venv/bin/pytest -q Project-Atreides/tests
-          .venv/bin/pytest -q Legiones-Cannenses/tests
-          .venv/bin/pytest -q aureon
+          (cd cannae-kernel && ../.venv/bin/pytest -q)
+          (cd Project-Atreides && ../.venv/bin/pytest -q)
+          (cd Legiones-Cannenses && ../.venv/bin/pytest -q)
+          (cd aureon && ../.venv/bin/pytest -q)
