@@ -1,0 +1,60 @@
+name: Four-package estate build
+
+on:
+  workflow_dispatch:
+    inputs:
+      atreides_ref:
+        default: main
+      lc_ref:
+        default: main
+      aureon_ref:
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  install-import-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: cannae-kernel
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: br-collab/Project-Atreides
+          ref: ${{ inputs.atreides_ref }}
+          path: Project-Atreides
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: br-collab/L.C.
+          ref: ${{ inputs.lc_ref }}
+          path: Legiones-Cannenses
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: br-collab/aureon
+          ref: ${{ inputs.aureon_ref }}
+          path: aureon
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.11"
+      - name: Install all four Python packages together
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r aureon/requirements.txt
+          .venv/bin/pip install pytest pytest-cov hypothesis PyYAML
+          # Aureon's immutable release pins supply the shared dependency graph.
+          # Install the checked-out packages last, without asking pip to resolve
+          # their equivalent direct-URL kernel requirements as different packages.
+          .venv/bin/pip install --no-deps -e ./cannae-kernel -e ./Project-Atreides -e ./Legiones-Cannenses
+      - name: Import the Aureon server
+        working-directory: aureon
+        env:
+          AUREON_KRAKEN_LIVE_ENABLED: "false"
+        run: ../.venv/bin/python -c 'import server'
+      - name: Run every Python suite
+        run: |
+          (cd cannae-kernel && ../.venv/bin/pytest -q)
+          (cd Project-Atreides && ../.venv/bin/pytest -q)
+          (cd Legiones-Cannenses && ../.venv/bin/pytest -q)
+          (cd aureon && ../.venv/bin/pytest -q)
