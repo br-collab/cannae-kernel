@@ -26,6 +26,7 @@ from cannae_kernel.envelopes import (
     ApprovedIntentEnvelope,
     ClearingTransformation,
     ExecutionEvent,
+    FirmSecuritiesDirection,
     ObligationAcceptanceRecord,
     SettlementObligationEnvelope,
 )
@@ -333,6 +334,8 @@ def settlement_obligation() -> SettlementObligationEnvelope:
         obligation_id=ObligationId("obl_01M2P20SY00000000000000001"),
         lifecycle_id=LifecycleId("lif_01M2P20SY00000000000000001"),
         transformation_digest="sha256:" + "c" * 64,
+        approved_intent_digest="sha256:" + "a" * 64,
+        firm_securities_direction=FirmSecuritiesDirection.RECEIVE,
         session=session_context(),
         provenance=Provenance.POLICY_RESULT,
         payload_digest="sha256:" + "d" * 64,

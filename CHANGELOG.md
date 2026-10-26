@@ -1,6 +1,19 @@
 # Changelog
 
-Every change to a field, an enum member or a canonical-serialization rule is breaking and bumps the minor version while below 1.0 (see CLAUDE.md).
+Every change to a field, an enum member or a canonical-serialization rule is breaking. Since
+1.0, a breaking change bumps the major version (see `CLAUDE.md`).
+
+## 2.0.0 — 25 Oct 2026
+
+INST-1 WP0 makes two deliberate breaking changes. `SettlementObligationEnvelope` is frozen at
+`cannae.settlement_obligation/2.0` and now requires the digest of the approved intent it settles
+and a `FirmSecuritiesDirection` of `RECEIVE` or `DELIVER`. This binds settlement direction to
+sealed authority without moving domain validation into the kernel.
+
+Canonical decimal strings are now normalised to plain notation without insignificant trailing
+zeros. Thus `100`, `100.00`, and `1E+2` have identical bytes and digests; negative zero is `0`.
+The v1.1.2 vectors remain byte-for-byte available under `tests/golden/1.1.2/`, while the new
+contract is recorded independently under `tests/golden/2.0.0/`.
 
 ## 1.1.2 — 21 Oct 2026
 

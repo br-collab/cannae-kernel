@@ -41,6 +41,7 @@ the payload — that is the domain's own contract test, and it stays there.
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Final, Literal, Self
 
 from pydantic import model_validator
@@ -66,6 +67,7 @@ __all__ = [
     "ClearingTransformation",
     "Digest",
     "ExecutionEvent",
+    "FirmSecuritiesDirection",
     "ObligationAcceptanceRecord",
     "SettlementObligationEnvelope",
 ]
@@ -76,12 +78,24 @@ Digest = NonEmptyStr
 APPROVED_INTENT_VERSION: Final = "cannae.approved_intent/1.0"
 EXECUTION_EVENT_VERSION: Final = "cannae.execution_event/1.0"
 CLEARING_TRANSFORMATION_VERSION: Final = "cannae.clearing_transformation/1.0"
-SETTLEMENT_OBLIGATION_VERSION: Final = "cannae.settlement_obligation/1.0"
+SETTLEMENT_OBLIGATION_VERSION: Final = "cannae.settlement_obligation/2.0"
 OBLIGATION_ACCEPTANCE_VERSION: Final = "cannae.obligation_acceptance/1.0"
 
 OBSERVED_EXECUTION: Final = frozenset({Provenance.FACT_EXTERNAL, Provenance.FACT_SYNTHETIC})
 """An execution is something that happened: a venue reported it, or an emulator
 standing in for one did. Nothing else can be an execution."""
+
+
+class FirmSecuritiesDirection(StrEnum):
+    """The firm's securities-side duty bound to the approved intent.
+
+    Vocabulary only: L.C. owns the rule that maps an approved BUY to RECEIVE and
+    an approved SELL to DELIVER. The kernel makes that result impossible to omit
+    or spell differently at the L.C.-Atreides boundary.
+    """
+
+    RECEIVE = "RECEIVE"
+    DELIVER = "DELIVER"
 
 
 class ApprovedIntentEnvelope(KernelModel):
@@ -309,13 +323,20 @@ class SettlementObligationEnvelope(KernelModel):
     split rests on, and the calendar is part of the leg.
     """
 
-    schema_version: Literal["cannae.settlement_obligation/1.0"] = SETTLEMENT_OBLIGATION_VERSION
+    schema_version: Literal["cannae.settlement_obligation/2.0"] = SETTLEMENT_OBLIGATION_VERSION
 
     obligation_id: ObligationId
     lifecycle_id: LifecycleId
     transformation_digest: Digest
     """The clearing transformation that formed this obligation. An obligation
     that cannot name what produced it is one nobody can reconcile."""
+
+    # INST-1 §1.2: "Settlement direction is bound to the approved intent."
+    approved_intent_digest: Digest
+    """The sealed approved-intent revision whose authority this obligation consumes."""
+
+    firm_securities_direction: FirmSecuritiesDirection
+    """Whether the firm must RECEIVE or DELIVER securities under that approved intent."""
 
     session: SessionContext
     """R3, and the reason R3 exists. The settlement business date is **stated

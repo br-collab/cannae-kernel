@@ -34,6 +34,7 @@ from cannae_kernel.envelopes import (
     ApprovedIntentEnvelope,
     ClearingTransformation,
     ExecutionEvent,
+    FirmSecuritiesDirection,
     ObligationAcceptanceRecord,
     SettlementObligationEnvelope,
 )
@@ -390,6 +391,8 @@ def _obligation(**overrides: object) -> SettlementObligationEnvelope:
         "obligation_id": OBLIGATION,
         "lifecycle_id": LIFECYCLE,
         "transformation_digest": D1,
+        "approved_intent_digest": D2,
+        "firm_securities_direction": FirmSecuritiesDirection.RECEIVE,
         "session": _session(),
         "provenance": Provenance.POLICY_RESULT,
         "payload_digest": PAYLOAD,
@@ -403,6 +406,22 @@ def test_an_obligation_names_the_transformation_that_formed_it() -> None:
     assert _obligation().transformation_digest == D1
     with pytest.raises(ValidationError):
         _obligation(transformation_digest="")
+
+
+def test_an_obligation_requires_the_approved_intent_binding_and_direction() -> None:
+    obligation = _obligation()
+    assert obligation.approved_intent_digest == D2
+    assert obligation.firm_securities_direction is FirmSecuritiesDirection.RECEIVE
+    with pytest.raises(ValidationError, match="approved_intent_digest"):
+        SettlementObligationEnvelope.model_validate(
+            obligation.model_dump(exclude={"approved_intent_digest"})
+        )
+    with pytest.raises(ValidationError, match="firm_securities_direction"):
+        SettlementObligationEnvelope.model_validate(
+            obligation.model_dump(exclude={"firm_securities_direction"})
+        )
+    with pytest.raises(ValidationError, match="firm_securities_direction"):
+        _obligation(firm_securities_direction="TRANSFER")
 
 
 def test_the_settlement_business_date_is_stated_by_the_forming_domain() -> None:

@@ -1,0 +1,1 @@
+{"active":true,"declared_at":"2026-09-16T21:30:00.000000Z","declared_by":{"actor_id":"act_01M2P20SY00000000000000001","actor_kind":"HUMAN","authenticated":true,"entitlement_refs":["ent:approve-intent"],"role":"operator"},"halt_id":"hlt_01M2P20SY0000000000000000A","reason":"Tier 0 halt: rail emulator unavailable","scope":["LC","ATREIDES"],"version":1}

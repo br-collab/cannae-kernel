@@ -7,7 +7,8 @@
 > *experimental*, *validated* and *production-qualified*; all five repositories are at
 > the first, and this label changes only when evidence changes it.
 
-**Last updated:** 242250Z OCT 26. Reflects `main` at `549604c`, package version 1.1.2 (tag `v1.1.2`).
+**Last updated:** 25 Oct 2026. Describes the proposed package version 2.0.0; Bill creates tag
+`v2.0.0` only after the pull request is green, reviewed and merged.
 
 
 The shared kernel of Project Cannae Legion. It is one small package that Aureon (pre-trade intent), Legiones Cannenses (L.C., the synthetic middle layer) and Atreides (post-trade settlement) all import for the shapes they must agree on.
@@ -16,10 +17,9 @@ The shared kernel of Project Cannae Legion. It is one small package that Aureon 
 
 ## Status
 
-Research package version `1.1.2`, tagged `v1.1.2`. Tag `v1.1.1` was published while the
-declared version still read `1.1.0`; `1.1.2` aligns the declarations (see `CHANGELOG.md`). The kernel is consumed by Aureon,
+Research package version `2.0.0` (release candidate, not yet tagged). The kernel is consumed by Aureon,
 Legiones Cannenses and Atreides. Its module-local public surface is documented below and is
-covered by **521 passing tests with 100% measured line coverage**. It does not implement domain
+covered by **529 passing tests with 100% measured line coverage**. It does not implement domain
 logic, rails, netting, policy thresholds, agents, storage, network access, or an aggregate
 package-level facade.
 
@@ -58,7 +58,7 @@ behind one package-level API is a separate, deliberately breaking refactor.
 | `halt` | `HaltContext` and `gate_under_halt(ctx, domain)`, which returns `BLOCK` for an active in-scope halt and `PASS` otherwise. Any authenticated actor may declare a halt; only an authenticated human may clear one. |
 | `finality` | `FinalityType` and `FinalityAssertion`. A forecast or recommendation must carry a confidence. A fact or policy result must not; a human judgment may. A fact cannot be observed before it takes effect. |
 | `recommendation` | `Recommendation`, its version constant, probability-distribution types and liquidity peaks. Recommendations are typed advice and never authority. |
-| `envelopes` | The frozen cross-domain contracts. `ApprovedIntentEnvelope` (Aureon → L.C.) `ExecutionEvent` (venue emulator → L.C.) and `ClearingTransformation` (within L.C., carried by reference) and `SettlementObligationEnvelope` (L.C. → Atreides) and `ObligationAcceptanceRecord` (Atreides out) are **all five**, each frozen at 1.0. Each carries identity, lineage, session and a **`payload_digest`** — the domain payload stays with the domain that can validate it, per JUM-D-01. `tests/test_envelope_freeze.py` fails if a shape changes without its version moving. |
+| `envelopes` | The frozen cross-domain contracts. `ApprovedIntentEnvelope` (Aureon → L.C.) `ExecutionEvent` (venue emulator → L.C.) and `ClearingTransformation` (within L.C., carried by reference) and `SettlementObligationEnvelope` (L.C. → Atreides) and `ObligationAcceptanceRecord` (Atreides out) are **all five**. The settlement obligation is frozen at 2.0; the other four remain at 1.0. Each carries identity, lineage, session and a **`payload_digest`** — the domain payload stays with the domain that can validate it, per JUM-D-01. `tests/test_envelope_freeze.py` fails if a shape changes without its version moving. |
 | `effects` | `ExternalEffect` (`SENDS`, `PAYS`, `SUBMITS`, `PUBLISHES`, `WRITES_FOREIGN_STORE`, `CONSUMES_CREDENTIALED_QUOTA`) and `OperationEffects`. The question is "is anything irreversible outside this process", not "does application state change". No default: an operation nobody has classified cannot be constructed. |
 | `session` | `MarketSession` (`REGULAR`, `CLOSING_PERIOD`, `OVERNIGHT`), `BusinessDate` (the date, the calendar that fixed it, and what established it) and `SessionContext`. There is deliberately **no** way to derive either from a timestamp: from 6 Dec 2026 Monday's trading day begins Sunday 9:00pm ET, so an instant establishes neither. |
 | `delivery` | `DeliveryPattern` (`DVP`, `PVP`, `FOP`, `PAYMENT_ONLY`, `OTHER_CONTINGENT`) and `ClearingMethod`. |
@@ -72,14 +72,16 @@ The rule set is part of the contract (full text in `cannae_kernel/canonical.py`)
 - **Encoding:** UTF-8, keys sorted, no insignificant whitespace.
 - **Keys:** ASCII only; a non-ASCII key raises. The kernel deliberately does not implement full RFC 8785 (JSON Canonicalization Scheme). ASCII keys and safe integers remove its two differences that matter across languages: key ordering and large-number formatting.
 - **Integers:** within ±(2^53 − 1); anything larger raises. Quantities and money are decimals.
-- **Decimal:** a plain-notation string that keeps its scale (`"1000000.00"`). Scale is significant: `"1.0"` and `"1.00"` digest differently. **Every domain contract must therefore declare the scale of each decimal field** (a Wave 3 freeze rule).
+- **Decimal:** a normalised plain-notation string without insignificant trailing zeros or an exponent (`"1000000"`). Scale is not economics: `"1.0"`, `"1.00"`, and `"1"` digest identically.
 - **Datetime:** UTC ISO-8601 with microseconds and `Z` (`"2026-09-16T21:30:00.000000Z"`).
 - **Enums:** their values.
 - **Floats:** rejected everywhere.
 
 Journal order is defined by prior-digest links, not by identifier order: identifiers minted in the same millisecond may sort either way.
 
-The canonical bytes and digest of one instance of every model are in `tests/golden/`. Those files are what another language implementation must reproduce byte for byte.
+The canonical bytes and digest of one instance of every model are in
+`tests/golden/<package-version>/`. Published versions stay available so another-language
+implementation can reproduce the contract it actually consumes byte for byte.
 
 ## Example
 

@@ -53,6 +53,9 @@ SHAPES: dict[str, str] = {
     "cannae.settlement_obligation/1.0": (
         "5e6370b34bef94545b1450b71e8ec65f9527a41517f350ad463b56fb666043bc"
     ),
+    "cannae.settlement_obligation/2.0": (
+        "3a8445eb2c02c749c1293f7ec2133f1645f3b4c28a91939887bbc833db3a5f51"
+    ),
     "cannae.obligation_acceptance/1.0": (
         "6a3d1101b403fbd14253339314d0f3ebba8e53e9b53bba15a87fae9e98b85a23"
     ),

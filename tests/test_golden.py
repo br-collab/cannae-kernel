@@ -20,7 +20,8 @@ from cannae_kernel.canonical import canonical_bytes, digest
 from tests.factories import golden_instances
 
 ROOT = Path(__file__).resolve().parent.parent
-GOLDEN = ROOT / "tests" / "golden"
+GOLDEN_ROOT = ROOT / "tests" / "golden"
+GOLDEN = GOLDEN_ROOT / cannae_kernel.__version__
 MANIFEST = json.loads((GOLDEN / "MANIFEST.json").read_text())
 INSTANCES = golden_instances()
 
@@ -58,6 +59,16 @@ def test_every_kernel_model_has_a_golden_vector() -> None:
 def test_manifest_version_is_the_package_version() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
     assert MANIFEST["version"] == pyproject["project"]["version"] == cannae_kernel.__version__
+
+
+def test_published_1_x_vectors_remain_available_under_their_version() -> None:
+    """A v2 release must not erase the byte contract published by v1.1.2."""
+    old = GOLDEN_ROOT / "1.1.2"
+    manifest = json.loads((old / "MANIFEST.json").read_text())
+    assert manifest["version"] == "1.1.2"
+    for entry in manifest["vectors"].values():
+        payload = (old / entry["file"]).read_bytes()
+        assert entry["digest"] == "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 @pytest.mark.parametrize("name", sorted(INSTANCES))
