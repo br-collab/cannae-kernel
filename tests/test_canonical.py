@@ -38,13 +38,14 @@ def test_keys_sorted_no_whitespace_utf8() -> None:
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        (Decimal("1000000.00"), '"1000000.00"'),
+        (Decimal("1000000.00"), '"1000000"'),
         (Decimal("1E+6"), '"1000000"'),
         (Decimal("0.000001"), '"0.000001"'),
-        (Decimal("-12.50"), '"-12.50"'),
+        (Decimal("-12.50"), '"-12.5"'),
+        (Decimal("-0.000"), '"0"'),
     ],
 )
-def test_decimal_is_a_plain_string_keeping_scale(value: Decimal, expected: str) -> None:
+def test_decimal_is_a_normalized_plain_string(value: Decimal, expected: str) -> None:
     assert _bytes(value) == ('{"value":' + expected + "}").encode()
 
 

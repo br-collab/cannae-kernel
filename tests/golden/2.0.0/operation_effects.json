@@ -1,0 +1,1 @@
+{"effects":["SENDS"],"note":"sends real email from the operator's account; nothing in-process changes","operation":"POST /api/email/test"}

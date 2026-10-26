@@ -1,0 +1,109 @@
+{
+  "version": "2.0.0",
+  "vectors": {
+    "absent": {
+      "file": "absent.json",
+      "digest": "sha256:cda3de78ae784aeb3311d2ca4540dfff7a2f483157f6555393f3dc0baaa69441"
+    },
+    "actor_ref": {
+      "file": "actor_ref.json",
+      "digest": "sha256:0ac715a3c589eac7ac4eb96c88ceec560e3ae6d1af07a2002aca3aaeea4579e9"
+    },
+    "approved_intent_envelope": {
+      "file": "approved_intent_envelope.json",
+      "digest": "sha256:4d22519ebca3634ccc18cc43c869384c0bcb6abd19ff5c5521d40b6fcdcf2fcd"
+    },
+    "authority_record": {
+      "file": "authority_record.json",
+      "digest": "sha256:3639e024f1e6d4a8da6566b7a09e042b1a9314c81c19680a848e0b126f5e7ced"
+    },
+    "business_date": {
+      "file": "business_date.json",
+      "digest": "sha256:5116bca85a12675b8fea199a9ddb73dccd6ea9d72f4115db114496011d0991ec"
+    },
+    "chain_issue": {
+      "file": "chain_issue.json",
+      "digest": "sha256:2036dfdcb2e43cf5f0a4c8432f28b7e5fbfa6aa32763cf1ad4fee1a08e1de1b5"
+    },
+    "chain_report": {
+      "file": "chain_report.json",
+      "digest": "sha256:2bb39f5c256d557e1f1a1e84a9455d5346bd415613c0983ff3daef0ab6358d09"
+    },
+    "clearing_transformation": {
+      "file": "clearing_transformation.json",
+      "digest": "sha256:d9065f904eede90a7a3c3e562174f1c2fb0c71f2724500632fdbab2deb2710cb"
+    },
+    "event_envelope": {
+      "file": "event_envelope.json",
+      "digest": "sha256:4050b823416358c1c1022526624e5b2c5731f28746c27d789a23575a5e0a0309"
+    },
+    "event_times": {
+      "file": "event_times.json",
+      "digest": "sha256:8a55b4faff32c03a3048273ed5669cbe7703df4e8bda23fcf99c8b153ea32d68"
+    },
+    "execution_event": {
+      "file": "execution_event.json",
+      "digest": "sha256:f85d1b797361e21e98795497ec63c40408880aa8035535a4e63bef96676feba3"
+    },
+    "finality_assertion": {
+      "file": "finality_assertion.json",
+      "digest": "sha256:823014d47787f9e5d5885aed09949caed14d8c4d05cb3347485c1b5ba4343bf5"
+    },
+    "halt_context": {
+      "file": "halt_context.json",
+      "digest": "sha256:6855a71f2b269f44cfb9de9513a12e5371c6eaaa4ea4240dfd469e83621ace8a"
+    },
+    "journal_checkpoint": {
+      "file": "journal_checkpoint.json",
+      "digest": "sha256:b1e29768c0b49da90ae90bcdbf7c26308e356071da20acec742202c7ef342828"
+    },
+    "liquidity_peak": {
+      "file": "liquidity_peak.json",
+      "digest": "sha256:b316d3f264df08361c78f0a96b3bd2797e4f6f29d91a51f52302252f31da2c9b"
+    },
+    "measurement": {
+      "file": "measurement.json",
+      "digest": "sha256:d17b215c863a10011d1c5f4dbc198d22a5e0a90269160878bcd37ac1c694cbf2"
+    },
+    "measurement_constant": {
+      "file": "measurement_constant.json",
+      "digest": "sha256:85eeb7c736997f5e02c77f0e99a0d7362807993e6ddf74eaf4f215a3f1ea476e"
+    },
+    "obligation_acceptance": {
+      "file": "obligation_acceptance.json",
+      "digest": "sha256:a0459d175aadf7d5a29a238c63121f53164b4c7be777a3664fb723879df8ffc0"
+    },
+    "observed_fact": {
+      "file": "observed_fact.json",
+      "digest": "sha256:2a33e42cae0d347fff879d11126ebc0d7b2914c09458a47ae5ba1dd989128bbb"
+    },
+    "operation_effects": {
+      "file": "operation_effects.json",
+      "digest": "sha256:c039082d6fb1be3c92be0d525c974a1aaf3704319e358e66b463f6c1bf98226b"
+    },
+    "outcome_probability": {
+      "file": "outcome_probability.json",
+      "digest": "sha256:4d856293745edf83ccd75a07a93d863049f0485bf612e1f98d4f62c4ec0550ea"
+    },
+    "probability_distribution": {
+      "file": "probability_distribution.json",
+      "digest": "sha256:5cd8c5e217f9e03da53a00b38145cc626f1107bb776961776f3faacf82fb6c0a"
+    },
+    "recommendation": {
+      "file": "recommendation.json",
+      "digest": "sha256:a02a5641b34d47af3dc1f9efadd3205e48449ffc683d9f7573f3f5d2c519d75c"
+    },
+    "recorded": {
+      "file": "recorded.json",
+      "digest": "sha256:07afbed914cc84cbd84b5fde7e946ed49f2cdbb205f50e2bad96b70bfce9ab27"
+    },
+    "session_context": {
+      "file": "session_context.json",
+      "digest": "sha256:bf3ae89feb724393a0482528227720761600c3b5c87d80f585d235eca711193b"
+    },
+    "settlement_obligation": {
+      "file": "settlement_obligation.json",
+      "digest": "sha256:bc5fb1c7631eb56bc3d6da35c0725dea74988eadbc72b47303802f0039e815ad"
+    }
+  }
+}

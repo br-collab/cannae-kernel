@@ -9,8 +9,9 @@ contract; changing any of them is a breaking change (see CLAUDE.md):
   are allowed and emitted as UTF-8, not escaped.
 - Integers must lie within ±(2^53 - 1), the range every JSON consumer represents exactly.
   Anything larger raises. Quantities and money are ``Decimal`` strings, not integers.
-- ``Decimal`` as a JSON string in plain notation, keeping its scale (``"1000000.00"``, never
-  ``"1E+6"``). Non-finite values raise.
+- ``Decimal`` as a JSON string in normalized plain notation (``"1000000"``, never
+  ``"1E+6"`` and never with insignificant trailing zeros). Scale is not economics:
+  ``100`` and ``100.00`` have the same canonical bytes. Non-finite values raise.
 - ``datetime`` as a JSON string in UTC ISO-8601 with six fractional digits and ``Z``
   (``"2026-09-16T21:30:00.000000Z"``). A naive datetime raises; an aware one in another
   zone is converted to UTC.
@@ -72,9 +73,14 @@ def _canonical_value(value: Any, path: str) -> Any:  # noqa: PLR0911, PLR0912
     if isinstance(value, float):
         raise CanonicalizationError(f"float at {path or '<root>'} has no canonical form")
     if isinstance(value, Decimal):
+        # INST-1 WP0.2: "The canonical serialization of a decimal is normalised
+        # (no trailing zeros, no exponent), so 100 and 100.00 produce the same digest."
         if not value.is_finite():
             raise CanonicalizationError(f"non-finite Decimal at {path or '<root>'}")
-        return format(value, "f")
+        plain = format(value, "f")
+        if "." in plain:
+            plain = plain.rstrip("0").rstrip(".")
+        return "0" if Decimal(plain).is_zero() else plain
     if isinstance(value, datetime):
         if value.tzinfo is None or value.utcoffset() is None:
             raise CanonicalizationError(f"naive datetime at {path or '<root>'}")

@@ -41,8 +41,9 @@ pytest
 
 Coverage gate is 95%. **A change to a field, an enum member or a canonical-serialization
 rule is breaking**: bump the version, record it in `CHANGELOG.md`, and run
-`python tools/regenerate_golden.py`. The golden vectors in `tests/golden/` are the
-cross-language contract and are never edited by hand.
+`python tools/regenerate_golden.py`. The golden vectors in
+`tests/golden/<package-version>/` are the cross-language contract. Published version
+directories are retained and never edited by hand.
 
 Continuous integration runs these on every pull request, whatever branch it targets. Read the **annotations** as well as the pass or fail: a warning sits happily on a green run.
 
