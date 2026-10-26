@@ -7,8 +7,7 @@
 > *experimental*, *validated* and *production-qualified*; all five repositories are at
 > the first, and this label changes only when evidence changes it.
 
-**Last updated:** 25 Oct 2026. Describes the proposed package version 2.0.0; Bill creates tag
-`v2.0.0` only after the pull request is green, reviewed and merged.
+**Last updated:** 260950Z OCT 26. Reflects `main` at `bed73a4`, package version 2.0.0 (tag `v2.0.0`).
 
 
 The shared kernel of Project Cannae Legion. It is one small package that Aureon (pre-trade intent), Legiones Cannenses (L.C., the synthetic middle layer) and Atreides (post-trade settlement) all import for the shapes they must agree on.
@@ -17,7 +16,7 @@ The shared kernel of Project Cannae Legion. It is one small package that Aureon 
 
 ## Status
 
-Research package version `2.0.0` (release candidate, not yet tagged). The kernel is consumed by Aureon,
+Research package version `2.0.0`, tagged `v2.0.0` on the merge commit `bed73a4`. The kernel is consumed by Aureon,
 Legiones Cannenses and Atreides. Its module-local public surface is documented below and is
 covered by **529 passing tests with 100% measured line coverage**. It does not implement domain
 logic, rails, netting, policy thresholds, agents, storage, network access, or an aggregate
