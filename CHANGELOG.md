@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.0 - 7 Nov 2026
+
+ONB-1 adds the shared `AccountStatus`, attested account-status document, `AutonomyLevel`, and
+`ActionClass` shapes. This is a major release because adding enum members and serialized models
+changes the cross-repository contract under the kernel versioning rule. The lifecycle transition
+policy, clock, storage, and actor registry remain outside the kernel.
+
 Every change to a field, an enum member or a canonical-serialization rule is breaking. Since
 1.0, a breaking change bumps the major version (see `CLAUDE.md`).
 
