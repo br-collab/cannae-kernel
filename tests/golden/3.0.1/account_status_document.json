@@ -1,0 +1,1 @@
+{"accounts":[{"account_id":"SYN-ACCOUNT-001","last_event_id":"SYN-EVENT-006","status":"ACTIVE"}],"as_of":"2026-09-16T21:30:00.000000Z","maximum_age_seconds":300,"schema_version":"cannae.account_status/1","synthetic":true}

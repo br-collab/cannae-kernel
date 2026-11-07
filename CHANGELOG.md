@@ -1,11 +1,19 @@
 # Changelog
 
+## 3.0.1 - 7 Nov 2026
+
+Clarify merge authority. This documentation release changes no contract.
+
 ## 3.0.0 - 7 Nov 2026
 
 ONB-1 adds the shared `AccountStatus`, attested account-status document, `AutonomyLevel`, and
 `ActionClass` shapes. This is a major release because adding enum members and serialized models
 changes the cross-repository contract under the kernel versioning rule. The lifecycle transition
 policy, clock, storage, and actor registry remain outside the kernel.
+
+The release added two modules, `account.py` and `governance.py`. It changed no existing
+envelope, enum, or model, so it was additive in substance. The major version was a conservative
+choice under the kernel versioning rule.
 
 Every change to a field, an enum member or a canonical-serialization rule is breaking. Since
 1.0, a breaking change bumps the major version (see `CLAUDE.md`).
