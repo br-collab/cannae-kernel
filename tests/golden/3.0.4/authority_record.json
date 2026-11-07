@@ -1,0 +1,1 @@
+{"authorizing_actor":{"actor_id":"act_01M2P20SY00000000000000001","actor_kind":"HUMAN","authenticated":true,"entitlement_refs":["ent:approve-intent"],"role":"operator"},"decision_type":"APPROVE_INTENT","independence_asserted":false,"quorum_refs":[],"rationale":"Within mandate; policy manifest PASS","timestamp":"2026-09-16T21:30:00.000000Z"}

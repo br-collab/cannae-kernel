@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.4 - 7 Nov 2026
+
+Remove the obsolete merge-ownership statement so one authority rule remains.
+
 ## 3.0.3 - 7 Nov 2026
 
 Add a zero-baseline Ruff and strict mypy quality ratchet.
