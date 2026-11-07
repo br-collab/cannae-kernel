@@ -29,3 +29,6 @@ The shared kernel of Project Cannae Legion: the shapes that Aureon, Legiones Can
 - Python 3.11. `uv sync --locked --extra dev`, then `ruff check .`, `mypy cannae_kernel tests tools`, `pytest` (coverage gate 95%).
 - One work package per commit, with its tests.
 - Spell out acronyms on first use in docs.
+## Merge authority
+
+Builders open pull requests. Only Bill merges pull requests or creates tags. Builders must not enable auto-merge.
