@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.2 - 7 Nov 2026
+
+Allow builders to enable check-gated auto-merge while preserving Bill's sole release authority.
+
 ## 3.0.1 - 7 Nov 2026
 
 Clarify merge authority. This documentation release changes no contract.
