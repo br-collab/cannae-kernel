@@ -16,6 +16,12 @@ from typing import Any, TypeVar
 from pydantic import BaseModel
 
 from cannae_kernel.absence import AbsenceKind, Absent, Recorded
+from cannae_kernel.account import (
+    AccountStatus,
+    AccountStatusDocument,
+    AccountStatusEntry,
+    AttestedAccountStatusDocument,
+)
 from cannae_kernel.actor import ActorKind, ActorRef
 from cannae_kernel.authority import AuthorityRecord
 from cannae_kernel.clocks import EventTimes
@@ -242,6 +248,27 @@ def recorded() -> Recorded[str]:
     return Recorded[str](value="dsor_01M2P20SY00000000000000001")
 
 
+def account_status_document() -> AccountStatusDocument:
+    return AccountStatusDocument(
+        as_of=T0,
+        maximum_age_seconds=300,
+        accounts=(
+            AccountStatusEntry(
+                account_id="SYN-ACCOUNT-001",
+                status=AccountStatus.ACTIVE,
+                last_event_id="SYN-EVENT-006",
+            ),
+        ),
+    )
+
+
+def attested_account_status_document() -> AttestedAccountStatusDocument:
+    return AttestedAccountStatusDocument(
+        payload_digest="sha256:" + "1" * 64,
+        payload='{"synthetic":true}',
+    )
+
+
 def measurement() -> Measurement:
     """An external reading, with the publisher and the time it was seen."""
     return Measurement(
@@ -415,6 +442,9 @@ def golden_instances() -> dict[str, BaseModel]:
     """One instance of every kernel model. Their canonical bytes are the golden vectors."""
     return {
         "absent": absent(),
+        "account_status_document": account_status_document(),
+        "account_status_entry": account_status_document().accounts[0],
+        "attested_account_status_document": attested_account_status_document(),
         "actor_ref": human(),
         "approved_intent_envelope": approved_intent_envelope(),
         "business_date": business_date(),
