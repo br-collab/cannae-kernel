@@ -32,8 +32,6 @@ class AccountStatusDocument(KernelModel):
 
 
 class AttestedAccountStatusDocument(KernelModel):
-    schema_version: Literal["cannae.attested_account_status/1"] = (
-        "cannae.attested_account_status/1"
-    )
+    schema_version: Literal["cannae.attested_account_status/1"] = "cannae.attested_account_status/1"
     payload_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     payload: NonEmptyStr
