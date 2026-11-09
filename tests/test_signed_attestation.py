@@ -34,9 +34,12 @@ def test_round_trip(synthetic_private_key: Ed25519PrivateKey) -> None:
         private_key=synthetic_private_key,
     )
 
-    assert verify_attestation(
-        wire, expected_producer="atreides", registry=registry_for(synthetic_private_key)
-    ) == b'{"synthetic":true}'
+    assert (
+        verify_attestation(
+            wire, expected_producer="atreides", registry=registry_for(synthetic_private_key)
+        )
+        == b'{"synthetic":true}'
+    )
 
 
 @pytest.mark.parametrize(
