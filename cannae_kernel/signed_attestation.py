@@ -9,13 +9,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Literal
+from typing import Literal, Protocol
 
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PrivateKey,
-    Ed25519PublicKey,
-)
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from cannae_kernel._model import KernelModel, NonEmptyStr
 
@@ -39,6 +36,10 @@ class PublicKeyRecord:
 
 
 PublicKeyRegistry = Mapping[str, PublicKeyRecord]
+
+
+class SigningKey(Protocol):
+    def sign(self, data: bytes) -> bytes: ...
 
 
 class AttestationRefusal(StrEnum):
@@ -79,7 +80,7 @@ def sign_attestation(
     *,
     producer: str,
     key_id: str,
-    private_key: Ed25519PrivateKey,
+    private_key: SigningKey,
 ) -> bytes:
     """Sign a payload with an Ed25519 private key and return the wire envelope."""
 
