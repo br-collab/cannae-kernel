@@ -2,7 +2,7 @@
 
 - ``cannae_kernel`` imports nothing from ``aureon``, ``atreides`` or ``lc``.
 - Library code reads no system clock or entropy, and touches no storage or network.
-- The only third-party runtime dependency is Pydantic.
+- The only third-party runtime dependencies are Pydantic and Cryptography.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ FORBIDDEN_MODULES = {
     "asyncio",
 }
 FORBIDDEN_CALLS = {"now", "utcnow", "today", "open", "urandom", "getrandbits"}
-ALLOWED_THIRD_PARTY = {"pydantic", "pydantic_core", "typing_extensions"}
+ALLOWED_THIRD_PARTY = {"cryptography", "pydantic", "pydantic_core", "typing_extensions"}
 
 
 def _imports(path: Path) -> list[tuple[int, str]]:
@@ -96,7 +96,7 @@ def test_source_reads_no_clock_entropy_storage_or_network() -> None:
     assert offenders == []
 
 
-def test_only_pydantic_is_imported_from_outside_the_standard_library() -> None:
+def test_only_declared_libraries_are_imported_from_outside_the_standard_library() -> None:
     third_party = {
         name.split(".")[0]
         for p in SOURCES
