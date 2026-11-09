@@ -1,6 +1,6 @@
 [project]
 name = "cannae-kernel"
-version = "3.0.4"
+version = "3.0.5"
 description = "Shared identifiers, canonical serialization, event envelope and governance shapes for Project Cannae Legion"
 authors = [{name = "Guillermo Ravelo"}]
 readme = "README.md"
@@ -12,8 +12,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 
-# The only runtime dependency. Same range as Atreides.
 dependencies = [
+    "cryptography==50.0.0",
     "pydantic>=2.6,<3.0",
 ]
 

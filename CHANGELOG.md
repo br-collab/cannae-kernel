@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.5 - 9 Nov 2026
+
+Add producer-bound Ed25519 attestations and immutable public-key registries for cross-domain
+evidence verification.
+
 ## 3.0.4 - 7 Nov 2026
 
 Remove the obsolete merge-ownership statement so one authority rule remains.
