@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping
+from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -17,7 +18,12 @@ from cannae_kernel.signed_attestation import (
 
 @pytest.fixture
 def synthetic_private_key() -> Ed25519PrivateKey:
-    return Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
+    return Ed25519PrivateKey.generate()
+
+
+def test_fixture_does_not_commit_fixed_private_key_material() -> None:
+    source = Path(__file__).read_text(encoding="utf-8")
+    assert "from_private" + "_bytes" not in source
 
 
 def registry_for(key: Ed25519PrivateKey, producer: str = "atreides") -> PublicKeyRegistry:
