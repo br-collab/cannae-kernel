@@ -1,6 +1,6 @@
 [project]
 name = "cannae-kernel"
-version = "3.0.5"
+version = "3.0.6"
 description = "Shared identifiers, canonical serialization, event envelope and governance shapes for Project Cannae Legion"
 authors = [{name = "Guillermo Ravelo"}]
 readme = "README.md"
@@ -13,7 +13,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "cryptography==50.0.0",
+    "cryptography>=50.0.0,<51",
     "pydantic>=2.6,<3.0",
 ]
 

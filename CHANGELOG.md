@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.6 - 20 Nov 2026
+
+Allow any `cryptography` 50.x release (`>=50.0.0,<51`) instead of exactly 50.0.0. A library that
+pins one patch version makes every consumer unresolvable on the next patch: Atreides could not
+take `cryptography` 50.0.2 (Atreides #173). Consumers keep exact versions in their own locks.
+
 ## 3.0.5 - 9 Nov 2026
 
 Add producer-bound Ed25519 attestations and immutable public-key registries for cross-domain
